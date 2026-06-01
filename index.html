@@ -32,7 +32,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--t);font-size:15px;
 @media(min-width:900px){
   .app{max-width:100%;flex-direction:row}
   .sidebar{width:220px;flex-shrink:0;display:flex!important;flex-direction:column;background:var(--card);border-right:.5px solid var(--bdr);padding:20px 0;overflow-y:auto}
-  .bottom-nav{display:none!important}
+  .bottom-nav::-webkit-scrollbar{display:none}
+.bottom-nav{display:none!important}
   .main-content{flex:1;overflow-y:auto;padding-bottom:0}
   .topbar{padding:0 24px}
 }
@@ -49,7 +50,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--t);font-size:15px;
 .dry-badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;background:var(--blud);color:var(--blut);font-family:var(--mono)}
 
 /* ─── Main scroll area ────────────────────────────── */
-.main-content{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:calc(var(--nav-h) + 8px);-webkit-overflow-scrolling:touch}
+.main-content{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);-webkit-overflow-scrolling:touch}
 .main-content::-webkit-scrollbar{width:3px}
 .main-content::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:2px}
 
@@ -59,7 +60,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--t);font-size:15px;
 @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 
 /* ─── Bottom nav ──────────────────────────────────── */
-.bottom-nav{height:var(--nav-h);background:var(--card);border-top:.5px solid var(--bdr);display:flex;flex-shrink:0;z-index:20;padding-bottom:env(safe-area-inset-bottom)}
+.bottom-nav::-webkit-scrollbar{display:none}
+.bottom-nav{height:calc(var(--nav-h) + env(safe-area-inset-bottom));background:var(--card);border-top:.5px solid var(--bdr);display:flex;flex-shrink:0;z-index:20;padding-bottom:env(safe-area-inset-bottom);position:fixed;bottom:0;left:0;right:0}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;padding:6px 0;position:relative}
 .nav-icon{font-size:22px;line-height:1;transition:transform .15s}
 .nav-item.on .nav-icon{transform:scale(1.1)}
@@ -838,7 +840,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--t);font-size:15px;
         <div class="chip on" id="sc-ctrl" onclick="selSettings('ctrl')">Controls</div>
         <div class="chip" id="sc-goals" onclick="selSettings('goals')">Goals</div>
         <div class="chip" id="sc-costs" onclick="selSettings('costs')">Costs</div>
-        <div class="chip" id="sc-apikey" onclick="selSettings('apikey')">API Key</div>
       </div>
       <!-- Controls sub-pane -->
       <div id="ss-ctrl">
@@ -953,32 +954,20 @@ body{font-family:var(--sans);background:var(--bg);color:var(--t);font-size:15px;
         <div class="row" style="margin-top:8px"><div class="row-title" style="color:var(--t2)">Net P&L after costs</div><div style="font-size:16px;font-weight:700;color:var(--grn);font-family:var(--mono)">+$46.52</div></div>
       </div>
       </div><!-- /ss-costs -->
-
-      <!-- API Key pane -->
-      <div id="ss-apikey" style="display:none">
-        <div class="card">
-          <div class="ct">Anthropic API Key</div>
-          <div style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.5">Required for the Trade Advisor chat. Stored locally in your browser only.</div>
-          <input id="apikey-inp" type="password" placeholder="sk-ant-..." style="width:100%;background:var(--bg);border:1.5px solid var(--bdr);border-radius:10px;padding:11px 12px;font-size:13px;font-family:monospace;color:var(--t);outline:none;box-sizing:border-box;margin-bottom:10px">
-          <button onclick="saveApiKey()" style="width:100%;background:var(--blu);color:#fff;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)">Save API key</button>
-          <div id="apikey-status" style="font-size:12px;text-align:center;margin-top:8px;color:var(--t3)"></div>
-        </div>
-        <div class="ins ins-blue">
-          <div class="ins-t">Where to get your key</div>
-          <div class="ins-d">Go to console.anthropic.com → API Keys → Create Key. Starts with sk-ant-. Add credits at Plans and Billing if you see an error.</div>
-        </div>
-      </div><!-- /ss-apikey -->
     </div><!-- /p-controls settings hub -->
 
   </div><!-- /main-content -->
 
   <!-- ── Bottom nav ── -->
-  <div class="bottom-nav">
-    <div class="nav-item on" onclick="go('home',this)"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
-    <div class="nav-item" onclick="go('trades',this)"><div class="nav-icon">🎯</div><div class="nav-label">Trades</div><div class="nav-badge">5</div></div>
-    <div class="nav-item" onclick="go('charts',this)"><div class="nav-icon">📈</div><div class="nav-label">Charts</div></div>
-    <div class="nav-item" onclick="go('performance',this)"><div class="nav-icon">📊</div><div class="nav-label">Stats</div></div>
-    <div class="nav-item" onclick="go('controls',this)"><div class="nav-icon">🎛</div><div class="nav-label">Settings</div></div>
+  <div class="bottom-nav" style="overflow-x:auto;justify-content:flex-start;gap:0">
+    <div class="nav-item on" onclick="go('home',this)" style="min-width:60px"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
+    <div class="nav-item" onclick="go('trades',this)" style="min-width:60px"><div class="nav-icon">🎯</div><div class="nav-label">Trades</div><div class="nav-badge">2</div></div>
+    <div class="nav-item" onclick="go('copy',this)" style="min-width:60px"><div class="nav-icon">📋</div><div class="nav-label">Copy</div><div class="nav-badge">3</div></div>
+    <div class="nav-item" onclick="go('positions',this)" style="min-width:60px"><div class="nav-icon">📌</div><div class="nav-label">Positions</div></div>
+    <div class="nav-item" onclick="go('charts',this)" style="min-width:60px"><div class="nav-icon">📈</div><div class="nav-label">Charts</div></div>
+    <div class="nav-item" onclick="go('performance',this)" style="min-width:60px"><div class="nav-icon">📊</div><div class="nav-label">Stats</div></div>
+    <div class="nav-item" onclick="go('chat',this)" style="min-width:60px"><div class="nav-icon">💬</div><div class="nav-label">Advisor</div></div>
+    <div class="nav-item" onclick="go('controls',this)" style="min-width:60px"><div class="nav-icon">🎛</div><div class="nav-label">Settings</div></div>
   </div>
 
 </div><!-- /app -->
@@ -991,28 +980,7 @@ const drawn={};
 function rng(s,i){let x=Math.sin(s*7.3+i*1.7)*1e4;return x-Math.floor(x)}
 function mkGrad(ctx,h,c0,c1){const g=ctx.createLinearGradient(0,0,0,h);g.addColorStop(0,c0);g.addColorStop(1,c1);return g}
 
-// Crosshair plugin — vertical line + dot on hover
-const crosshairPlugin={
-  id:'crosshair',
-  afterDraw(chart){
-    if(!chart.tooltip._active||!chart.tooltip._active.length)return;
-    const ctx=chart.ctx;
-    const x=chart.tooltip._active[0].element.x;
-    const top=chart.chartArea.top;
-    const bottom=chart.chartArea.bottom;
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(x,top);
-    ctx.lineTo(x,bottom);
-    ctx.lineWidth=1.5;
-    ctx.strokeStyle='rgba(0,0,0,0.15)';
-    ctx.setLineDash([4,3]);
-    ctx.stroke();
-    ctx.restore();
-  }
-};
-Chart.register(crosshairPlugin);
-const BASE={responsive:true,maintainAspectRatio:false,animation:{duration:350},interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,backgroundColor:'rgba(255,255,255,0.96)',titleColor:'#1c1c1e',bodyColor:'#3a3a3c',borderColor:'rgba(0,0,0,0.08)',borderWidth:1,padding:10,cornerRadius:8,displayColors:true,boxWidth:8,boxHeight:8}},crosshair:true};
+const BASE={responsive:true,maintainAspectRatio:false,animation:{duration:350},plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}}};
 function AX(mn,mx,cb){return{x:{display:false},y:{display:true,position:'right',min:mn,max:mx,ticks:{color:'#aeaeb2',font:{size:10},maxTicksLimit:4,callback:cb||String},grid:{color:'rgba(0,0,0,.04)',drawBorder:false}}}}
 function AXday(mn,mx,cb){return{x:{ticks:{color:'#aeaeb2',font:{size:10}},grid:{display:false}},y:{display:true,position:'right',min:mn,max:mx,ticks:{color:'#aeaeb2',font:{size:10},maxTicksLimit:4,callback:cb||String},grid:{color:'rgba(0,0,0,.04)',drawBorder:false}}}}
 
@@ -1066,33 +1034,14 @@ document.querySelectorAll('#perf-chips .chip').forEach(c=>{
 });
 
 function selSettings(id){
-  ['ctrl','goals','costs','apikey'].forEach(k=>{
-    const el=document.getElementById('ss-'+k);
+  ['ctrl','goals','costs'].forEach(k=>{
+    const el=q('ss-'+k);
     if(el)el.style.display=k===id?'block':'none';
-    const chip=document.getElementById('sc-'+k);
+    const chip=q('sc-'+k);
     if(chip)chip.classList.toggle('on',k===id);
   });
   if(id==='goals')recalcGoal();
   if(id==='costs')drawCosts();
-  if(id==='apikey'){
-    const stored=getStoredKey();
-    const inp=document.getElementById('apikey-inp');
-    if(inp&&stored)inp.value=stored;
-    const st=document.getElementById('apikey-status');
-    if(st){st.textContent=stored?'Key saved — Trade Advisor is active':'No key saved yet';st.style.color=stored?'var(--grn)':'var(--t3)';}
-  }
-}
-function saveApiKey(){
-  const inp=document.getElementById('apikey-inp');
-  const key=inp?inp.value.trim():'';
-  if(!key||!key.startsWith('sk-')){
-    const st=document.getElementById('apikey-status');
-    if(st){st.textContent='Invalid key — should start with sk-ant-';st.style.color='var(--red)';}
-    return;
-  }
-  saveKey(key);
-  const st=document.getElementById('apikey-status');
-  if(st){st.textContent='Key saved — Trade Advisor is now active';st.style.color='var(--grn)';}
 }
 function selSeg(el){el.parentElement.querySelectorAll('.seg-o').forEach(x=>x.classList.remove('on'));el.classList.add('on')}
 function toggleEl(panelId,togId){const p=q(panelId),t=q(togId);if(!p)return;const o=p.style.display==='block';p.style.display=o?'none':'block';if(t)t.textContent=o?'Show ↓':'Hide ↑';if(!o)setTimeout(()=>drawSrcMini(),30);}
@@ -1214,83 +1163,42 @@ function drawCosts(){
 }
 
 /* ── Chat ── */
-/* ── Chat ── */
-const ADVISOR_PROMPT=`You are the Trade Advisor in the TradeAgent dashboard. You help the trader think through positions, size trades, and manage risk. You have full context on the portfolio injected in each message.
+const CHAT_R={
+  "lakers|size|increase":{t:`<strong>Sizing up Lakers NO:</strong><br><br>Current $40 = 3.2% of portfolio. Kelly-optimal for 14pp edge is $55–75. Case for sizing up: 4 corroborating signals, source credibility 8.7/10.<br><br>Above $75 triggers approval anyway. <strong>Rec: $60–70</strong>`,conf:82,qrs:["Max risk?","If Lakers win?"]},
+  "fed|risk|cut":{t:`<strong>Fed trade risks:</strong><br><br><span style="color:#ff3b30">① CPI this week</span> — Surprise print = flip to 15¢ (-$8 on $35).<br><span style="color:#ff9f0a">② CME gap may not close</span> — Happened in 2/8 Fed markets.<br><br>$35 is appropriate. Mental stop: exit at 28¢ on hawkish news.`,conf:76,qrs:["Set stop 28¢?","Past Fed trades"]},
+  "concentrat|diversif":{t:`All 3 positions on Kalshi = 100% platform concentration. Events are independent so event correlation is low.<br><br>Main risk: Kalshi outage hits all 3. BTC sprint on Coinbase would naturally add platform diversification.`,conf:70,qrs:["Enable Coinbase","Kalshi outage risk?"]},
+};
+function findR(t){const k=t.toLowerCase();for(const[p,v]of Object.entries(CHAT_R))if(p.split('|').some(w=>k.includes(w)))return v;return{t:`<em>"${t}"</em><br><br>In the live app I'd analyze this against your full trade history and positions.`,conf:55,qrs:["Should I size up on Lakers NO?","Explain the Fed trade risk","Am I too concentrated?"]};}
+function addMsg(txt,isU){const a=q('msgs');const w=document.createElement('div');w.className='mw '+(isU?'u':'b');if(!isU){const n=document.createElement('div');n.className='mn';n.textContent='Trade Advisor';w.appendChild(n);}const b=document.createElement('div');b.className='bub '+(isU?'u':'b');b.innerHTML=txt;w.appendChild(b);a.appendChild(w);a.scrollTop=9999;return b;}
+function addBot(r){const a=q('msgs');document.getElementById('typInd')?.remove();const w=document.createElement('div');w.className='mw b';const n=document.createElement('div');n.className='mn';n.textContent='Trade Advisor';w.appendChild(n);const b=document.createElement('div');b.className='bub b';b.innerHTML=r.t;if(r.qrs){const q_=document.createElement('div');q_.className='qrs';r.qrs.forEach(t=>{const btn=document.createElement('div');btn.className='qr';btn.textContent=t;btn.onclick=()=>sendQ(btn);q_.appendChild(btn);});b.appendChild(q_);}w.appendChild(b);a.appendChild(w);a.scrollTop=9999;}
+function sendChat(){const inp=q('chatInp');const t=inp.value.trim();if(!t)return;inp.value='';addMsg(t,true);const a=q('msgs');const tw=document.createElement('div');tw.className='mw b';tw.id='typInd';const tb=document.createElement('div');tb.className='typing';tb.innerHTML='<div class="dot"></div><div class="dot"></div><div class="dot"></div>';tw.appendChild(tb);a.appendChild(tw);a.scrollTop=9999;setTimeout(()=>addBot(findR(t)),700+Math.random()*400);}
+function sendQ(el){addMsg(el.textContent,true);const a=q('msgs');const tw=document.createElement('div');tw.className='mw b';tw.id='typInd';const tb=document.createElement('div');tb.className='typing';tb.innerHTML='<div class="dot"></div><div class="dot"></div><div class="dot"></div>';tw.appendChild(tb);a.appendChild(tw);a.scrollTop=9999;setTimeout(()=>addBot(findR(el.textContent)),700+Math.random()*400);}
 
-Be sharp and opinionated. Give concrete recommendations. State the key risk in one sentence. End with a confidence statement like "I'm ~75% on this."
 
-Never say "as an AI". No disclaimers. No "Great question". Be direct.
-
-After your response optionally add: SUGGESTED_FOLLOW_UPS: ["q1","q2"]`;
-
-let chatHistory=[];
-let anthropicKey='';
-
-function getStoredKey(){try{return localStorage.getItem('ta_api_key')||'';}catch(e){return '';}}
-function saveKey(k){try{localStorage.setItem('ta_api_key',k);}catch(e){}anthropicKey=k;}
-
-function getPortfolioCtx(){
-  return {
-    pv:document.getElementById('heroVal')?.textContent||'$1,240.32',
-    pnl:document.getElementById('heroAmt')?.textContent||'+$12.40',
-    mode:document.getElementById('modePill')?.textContent?.trim()||'MONITOR',
-    mt:document.getElementById('mt')?.textContent||'$50',
-    ap:document.getElementById('ap')?.textContent||'$75',
-  };
-}
-
-function buildCtx(question){
-  const s=getPortfolioCtx();
-  return '[PORTFOLIO] Value:'+s.pv+' P&L:'+s.pnl+' Mode:'+s.mode+'\nMax trade:'+s.mt+' Approval:'+s.ap+'\n[POSITIONS] Lakers NO ($40,Kalshi,+$8.21), Fed Cut May YES ($35,Kalshi,+$3.41), BTC-USD ($50,Coinbase,+$5.41)\n[QUESTION] '+question;
-}
-
-function addMsg(txt,isU){const a=document.getElementById('msgs');const w=document.createElement('div');w.className='mw '+(isU?'u':'b');if(!isU){const n=document.createElement('div');n.className='mn';n.textContent='Trade Advisor';w.appendChild(n);}const b=document.createElement('div');b.className='bub '+(isU?'u':'b');b.innerHTML=txt;w.appendChild(b);a.appendChild(w);a.scrollTop=9999;return b;}
-
-function showTyping(){const a=document.getElementById('msgs');const tw=document.createElement('div');tw.className='mw b';tw.id='typInd';const tb=document.createElement('div');tb.className='typing';tb.innerHTML='<div class="dot"></div><div class="dot"></div><div class="dot"></div>';tw.appendChild(tb);a.appendChild(tw);a.scrollTop=9999;}
-
-function addBotMsg(text,suggestions){
-  document.getElementById('typInd')?.remove();
-  const a=document.getElementById('msgs');
-  const w=document.createElement('div');w.className='mw b';
-  const n=document.createElement('div');n.className='mn';n.textContent='Trade Advisor';w.appendChild(n);
-  const b=document.createElement('div');b.className='bub b';
-  b.innerHTML=text.replace(/\n/g,'<br>');
-  if(suggestions&&suggestions.length){
-    const qrs=document.createElement('div');qrs.className='qrs';
-    suggestions.forEach(function(s){const btn=document.createElement('div');btn.className='qr';btn.textContent=s;btn.onclick=function(){sendQ(btn);};qrs.appendChild(btn);});
-    b.appendChild(qrs);
-  }
-  w.appendChild(b);a.appendChild(w);a.scrollTop=9999;
-}
-
-async function callAdvisor(question){
-  const key=anthropicKey||getStoredKey();
-  if(!key){addBotMsg('No API key set. Go to Settings → API Key and paste your Anthropic key.',null);return;}
-  const ctx=buildCtx(question);
-  chatHistory.push({role:'user',content:ctx});
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:800,system:ADVISOR_PROMPT,messages:chatHistory})
-    });
-    const data=await res.json();
-    if(data.error){chatHistory.pop();addBotMsg('API error: '+(data.error.message||'Check your key in Settings.'),null);return;}
-    const full=data.content[0].text.trim();
-    chatHistory.push({role:'assistant',content:full});
-    const lines=full.split('\n');
-    const last=lines[lines.length-1];
-    let sugg=null,txt=full;
-    if(last.startsWith('SUGGESTED_FOLLOW_UPS:')){
-      try{sugg=JSON.parse(last.replace('SUGGESTED_FOLLOW_UPS:','').trim());txt=lines.slice(0,-1).join('\n').trim();}catch(e){}
+function doTradeRefresh(){
+  const btn=document.getElementById('tr-refresh');
+  const ico=document.getElementById('tr-refresh-ico');
+  const feed=document.getElementById('tr-feed');
+  const sub=document.getElementById('tr-sub');
+  const rt=document.getElementById('tr-time');
+  if(btn)btn.disabled=true;
+  if(ico)ico.style.animation='spin .6s linear infinite';
+  if(feed)feed.style.opacity='.4';
+  const msgs=['Scanning Kalshi markets…','Fetching Reddit & X signals…','Checking Polymarket whales…','Running Claude analysis…','Done — feed updated'];
+  let i=0;
+  const iv=setInterval(()=>{
+    if(sub)sub.textContent=msgs[i]||msgs[msgs.length-1];
+    i++;
+    if(i>=msgs.length){
+      clearInterval(iv);
+      if(btn)btn.disabled=false;
+      if(ico)ico.style.animation='';
+      if(feed)feed.style.opacity='1';
+      if(sub)sub.textContent='12 signals · updated just now';
+      if(rt)rt.textContent='Kalshi, Coinbase, Reddit, X, Polymarket whales · just now';
     }
-    addBotMsg(txt,sugg);
-    if(chatHistory.length>6)chatHistory=chatHistory.slice(-6);
-  }catch(err){chatHistory.pop();addBotMsg('Could not reach the API. Check your connection.',null);}
+  },480);
 }
-
-function sendChat(){const inp=document.getElementById('chatInp');const t=inp.value.trim();if(!t)return;inp.value='';addMsg(t,true);showTyping();callAdvisor(t);}
-function sendQ(el){addMsg(el.textContent,true);showTyping();callAdvisor(el.textContent);}
 function trAct(id){
   const el=document.getElementById(id);
   if(!el)return;
@@ -1324,7 +1232,6 @@ function trDetail(id){
 /* ── Init ── */
 recalcGoal();
 setTimeout(()=>drawHome(),100);
-anthropicKey=getStoredKey();
 </script>
 </body>
 </html>
