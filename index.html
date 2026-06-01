@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>TradeAgent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+/* ─── Reset & tokens ──────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#f2f2f7;--card:#fff;--card2:#f8f8fb;
+  --t:#1c1c1e;--t2:#6e6e73;--t3:#aeaeb2;
+  --grn:#34c759;--grn2:#28a745;--grnd:#d1fae5;--grnt:#065f46;
+  --red:#ff3b30;--redd:#fee2e2;--redt:#991b1b;
+  --blu:#007aff;--blud:#e8f0fe;--blut:#1a56db;
+  --org:#ff9f0a;--orgd:#fef3c7;--orgt:#92400e;
+  --pur:#af52de;--purd:#ede9fe;--purt:#5b21b6;
+  --bdr:rgba(0,0,0,.09);
+  --r:14px;--r2:10px;--r3:8px;
+  --sans:'DM Sans',system-ui,sans-serif;
+  --mono:'DM Mono',monospace;
+  --nav-h:60px;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--sans);background:var(--bg);color:var(--t);font-size:15px;line-height:1.4}
+
+/* ─── Layout ──────────────────────────────────────── */
+.app{display:flex;flex-direction:column;height:100vh;max-width:480px;margin:0 auto;position:relative;background:var(--bg)}
+@media(min-width:900px){
+  .app{max-width:100%;flex-direction:row}
+  .sidebar{width:220px;flex-shrink:0;display:flex!important;flex-direction:column;background:var(--card);border-right:.5px solid var(--bdr);padding:20px 0;overflow-y:auto}
+  .bottom-nav{display:none!important}
+  .main-content{flex:1;overflow-y:auto;padding-bottom:0}
+  .topbar{padding:0 24px}
+}
+
+/* ─── Topbar ──────────────────────────────────────── */
+.topbar{background:var(--card);border-bottom:.5px solid var(--bdr);padding:0 16px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:10}
+.logo{font-family:var(--mono);font-size:16px;font-weight:500;letter-spacing:-.3px;color:var(--t)}
+.logo span{color:var(--grn)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.mode-pill{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;font-family:var(--mono);cursor:pointer;letter-spacing:.2px}
+.mode-active{background:var(--grnd);color:var(--grnt);border:1px solid var(--grn2)}
+.mode-monitor{background:var(--orgd);color:var(--orgt)}
+.mode-paused{background:var(--redd);color:var(--redt)}
+.dry-badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;background:var(--blud);color:var(--blut);font-family:var(--mono)}
+
+/* ─── Main scroll area ────────────────────────────── */
+.main-content{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:calc(var(--nav-h) + 8px);-webkit-overflow-scrolling:touch}
+.main-content::-webkit-scrollbar{width:3px}
+.main-content::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:2px}
+
+/* ─── Panes ───────────────────────────────────────── */
+.pane{display:none;padding:12px 14px 8px;animation:fadein .18s ease}
+.pane.on{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ─── Bottom nav ──────────────────────────────────── */
+.bottom-nav{height:var(--nav-h);background:var(--card);border-top:.5px solid var(--bdr);display:flex;flex-shrink:0;z-index:20;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;padding:6px 0;position:relative}
+.nav-icon{font-size:22px;line-height:1;transition:transform .15s}
+.nav-item.on .nav-icon{transform:scale(1.1)}
+.nav-label{font-size:10px;font-weight:600;color:var(--t3);transition:color .15s}
+.nav-item.on .nav-label{color:var(--blu)}
+.nav-badge{position:absolute;top:4px;right:calc(50% - 18px);background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;font-family:var(--mono)}
+
+/* ─── Sidebar nav (desktop) ───────────────────────── */
+.sidebar{display:none}
+.sb-logo{padding:0 20px 20px;font-family:var(--mono);font-size:17px;font-weight:500;color:var(--t);border-bottom:.5px solid var(--bdr);margin-bottom:8px}
+.sb-logo span{color:var(--grn)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:14px;font-weight:500;color:var(--t2);cursor:pointer;border-left:2.5px solid transparent;transition:all .15s;position:relative}
+.sb-item:hover{color:var(--t);background:var(--bg)}
+.sb-item.on{color:var(--blu);border-left-color:var(--blu);background:var(--blud)}
+.sb-icon{font-size:18px;width:22px;text-align:center;flex-shrink:0}
+.sb-badge{margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px}
+.sb-section{padding:12px 20px 4px;font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.8px;text-transform:uppercase;margin-top:4px}
+
+/* ─── Cards ───────────────────────────────────────── */
+.card{background:var(--card);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.card-sm{padding:11px;border-radius:var(--r2)}
+.ct{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+.card-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.ch-t{font-size:15px;font-weight:600}
+.ch-s{font-size:11px;color:var(--t2);margin-top:2px}
+
+/* ─── Charts ──────────────────────────────────────── */
+.ch-wrap{width:100%}
+.h80{height:80px}.h100{height:100px}.h110{height:110px}.h130{height:130px}.h150{height:150px}.h180{height:180px}
+
+/* ─── Badges ──────────────────────────────────────── */
+.badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;flex-shrink:0}
+.bg{background:var(--grnd);color:var(--grnt)}
+.br{background:var(--redd);color:var(--redt)}
+.bo{background:var(--orgd);color:var(--orgt)}
+.bb{background:var(--blud);color:var(--blut)}
+.bp{background:var(--purd);color:var(--purt)}
+
+/* ─── Metric grid ─────────────────────────────────── */
+.mg2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.mg4{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.met{background:var(--bg);border-radius:var(--r2);padding:10px;text-align:center}
+.met-l{font-size:10px;color:var(--t2);margin-bottom:3px;font-weight:500}
+.met-v{font-size:16px;font-weight:600;font-family:var(--mono)}
+
+/* ─── Period pills ────────────────────────────────── */
+.per-row{display:flex;gap:4px;margin-bottom:10px;overflow-x:auto}
+.per-row::-webkit-scrollbar{display:none}
+.per{padding:4px 11px;border-radius:7px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:#e5e5ea;color:var(--t2);flex-shrink:0;transition:all .15s}
+.per.on{background:var(--t);color:#fff}
+
+/* ─── Sub-chips ───────────────────────────────────── */
+.chip-row{display:flex;gap:6px;padding-bottom:2px;overflow-x:auto;margin-bottom:2px}
+.chip-row::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:#e5e5ea;color:var(--t2);white-space:nowrap;transition:all .15s}
+.chip.on{background:var(--t);color:#fff}
+
+/* ─── Tab chips (in-pane) ─────────────────────────── */
+.sub-tab{display:none}.sub-tab.on{display:block}
+
+/* ─── Legend ──────────────────────────────────────── */
+.leg-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.leg{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2)}
+.leg-line{width:12px;height:2.5px;border-radius:2px}
+.leg-dot{width:8px;height:8px;border-radius:50%}
+
+/* ─── Row layout ──────────────────────────────────── */
+.row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:.5px solid var(--bg)}
+.row:last-child{border-bottom:none;padding-bottom:0}
+.row-l{flex:1}
+.row-title{font-size:14px;font-weight:500}
+.row-sub{font-size:11px;color:var(--t2);margin-top:2px}
+.adj{display:flex;align-items:center;gap:7px}
+.ab{width:30px;height:30px;border-radius:50%;background:#e5e5ea;border:none;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2);font-weight:600;transition:background .15s;flex-shrink:0}
+.ab:hover{background:#d1d1d6}
+.av{font-size:14px;font-weight:600;color:var(--blu);min-width:60px;text-align:center;font-family:var(--mono)}
+
+/* ─── Toggles ─────────────────────────────────────── */
+.toggle{width:48px;height:28px;background:#e9e9eb;border-radius:14px;cursor:pointer;position:relative;border:none;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--grn)}
+.toggle::after{content:'';position:absolute;width:24px;height:24px;border-radius:50%;background:#fff;top:2px;left:2px;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.toggle.on::after{transform:translateX(20px)}
+
+/* ─── Seg control ─────────────────────────────────── */
+.seg{display:flex;background:#e9e9eb;border-radius:9px;padding:2px;gap:0}
+.seg-o{flex:1;text-align:center;padding:5px 7px;font-size:12px;font-weight:600;cursor:pointer;border-radius:7px;color:var(--t2);transition:all .15s;white-space:nowrap}
+.seg-o.on{background:#fff;color:var(--t)}
+
+/* ─── Day pills ───────────────────────────────────── */
+.dpill{padding:5px 10px;border-radius:8px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:#e5e5ea;color:var(--t2);transition:all .15s}
+.dpill.on{background:var(--blu);color:#fff}
+
+/* ─── Hero (Home) ─────────────────────────────────── */
+.hero{padding:14px 14px 0}
+.hero-label{font-size:13px;color:var(--t2);font-weight:500;margin-bottom:5px}
+.hero-val{font-size:44px;font-weight:600;letter-spacing:-2px;line-height:1;font-family:var(--mono)}
+.hero-chg{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:14px;font-weight:600}
+.hero-chg.pos{color:var(--grn)}.hero-chg.neg{color:var(--red)}
+.hero-period{font-size:12px;color:var(--t2);font-weight:400}
+
+/* ─── Copy trade cards ────────────────────────────── */
+.copy-card{background:var(--card);border-radius:var(--r);padding:14px;margin-bottom:10px;border-left:4px solid var(--grn)}
+.copy-card.med{border-left-color:var(--org)}
+.cc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px}
+.cc-src{font-size:11px;color:var(--t2);font-weight:500;margin-bottom:2px}
+.cc-link{font-size:12px;font-weight:600;color:var(--blu);cursor:pointer;text-decoration:none}
+.cc-mkt{font-size:15px;font-weight:700;margin-bottom:9px;line-height:1.3}
+.cc-stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.cc-stat-l{font-size:10px;color:var(--t2);margin-bottom:2px}
+.cc-stat-v{font-size:13px;font-weight:700}
+.cc-rationale{font-size:12px;color:var(--t2);line-height:1.5;padding:9px 11px;background:var(--bg);border-radius:9px;margin-bottom:11px}
+.cc-actions{display:flex;gap:7px}
+.btn-p{background:var(--blu);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;flex:2;font-family:var(--sans)}
+.btn-s{background:var(--bg);color:var(--t2);border:none;border-radius:10px;padding:10px 12px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans)}
+.btn-d{background:var(--blud);color:var(--blu);border:none;border-radius:10px;padding:10px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans)}
+
+/* ─── Position cards ──────────────────────────────── */
+.pos-card{background:var(--card);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.pc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.pc-name{font-size:15px;font-weight:700}
+.pc-plat{font-size:11px;color:var(--t2);margin-top:2px}
+.pc-pnl{font-size:18px;font-weight:700;font-family:var(--mono)}
+.pc-controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.pc-ctrl{background:var(--bg);border-radius:10px;padding:10px}
+.pc-cl{font-size:10px;color:var(--t2);font-weight:500;margin-bottom:5px}
+.pc-row{display:flex;align-items:center;gap:6px}
+.pc-val{font-size:14px;font-weight:700;font-family:var(--mono)}
+.sb-small{background:var(--bg);border:none;border-radius:6px;width:26px;height:26px;font-size:15px;cursor:pointer;color:var(--t2);font-weight:600;display:flex;align-items:center;justify-content:center}
+
+/* ─── Source tracker ──────────────────────────────── */
+.src-item{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.src-item:last-child{margin-bottom:0}
+.src-info{width:105px;flex-shrink:0}
+.src-name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.src-trades{font-size:10px;color:var(--t2);margin-top:1px}
+.src-track{flex:1;height:7px;background:#e5e5ea;border-radius:4px;overflow:hidden}
+.src-fill{height:100%;border-radius:4px}
+.src-pct{font-size:12px;font-weight:700;width:30px;text-align:right;flex-shrink:0;font-family:var(--mono)}
+.src-pnl{font-size:11px;font-weight:600;width:42px;text-align:right;flex-shrink:0;font-family:var(--mono)}
+
+/* ─── Insight / alert boxes ───────────────────────── */
+.ins{border-radius:var(--r2);padding:10px 12px;margin-top:8px;border-left:3px solid}
+.ins-t{font-size:12px;font-weight:700;margin-bottom:3px}
+.ins-d{font-size:11px;line-height:1.5}
+.ins-blue{background:var(--blud);border-color:var(--blu)}.ins-blue .ins-t{color:var(--blut)}.ins-blue .ins-d{color:#1e40af}
+.ins-grn{background:var(--grnd);border-color:var(--grn)}.ins-grn .ins-t{color:var(--grnt)}.ins-grn .ins-d{color:#166534}
+.ins-org{background:var(--orgd);border-color:var(--org)}.ins-org .ins-t{color:var(--orgt)}.ins-org .ins-d{color:#78350f}
+.ins-red{background:var(--redd);border-color:var(--red)}.ins-red .ins-t{color:var(--redt)}.ins-red .ins-d{color:#7f1d1d}
+
+/* ─── Sprint banner ───────────────────────────────── */
+.sprint-banner{background:#1c1c1e;border-radius:var(--r);padding:14px;color:#fff;margin-bottom:10px;position:relative;overflow:hidden}
+.sprint-glow{position:absolute;top:-20px;right:-20px;width:100px;height:100px;border-radius:50%;background:rgba(52,199,89,.12)}
+.sprint-label{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#00d68f;letter-spacing:.5px;margin-bottom:8px}
+.sprint-pulse{width:7px;height:7px;border-radius:50%;background:#00d68f;animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+.sprint-asset{font-size:22px;font-weight:700;letter-spacing:-.5px;font-family:var(--mono)}
+.sprint-pnl{font-size:18px;font-weight:700;color:#00d68f;margin:3px 0 12px;font-family:var(--mono)}
+.sprint-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
+.sg{background:rgba(255,255,255,.07);border-radius:8px;padding:8px 9px}
+.sg-l{font-size:10px;color:#8e8e93;margin-bottom:2px}
+.sg-v{font-size:13px;font-weight:700;color:#fff;font-family:var(--mono)}
+.sprint-btns{display:flex;gap:7px}
+.sp-btn{flex:1;padding:9px;border-radius:9px;font-size:12px;font-weight:600;border:none;cursor:pointer;font-family:var(--sans)}
+.sp-pause{background:rgba(255,255,255,.1);color:#fff}
+.sp-stop{background:rgba(255,59,48,.2);color:#ff453a}
+
+/* ─── Spend bars ──────────────────────────────────── */
+.spend-item{margin-bottom:12px}
+.spend-item:last-child{margin-bottom:0}
+.spend-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.spend-name{font-size:13px;font-weight:500}
+.spend-right{display:flex;align-items:center;gap:7px}
+.spend-val{font-size:13px;font-weight:700;font-family:var(--mono)}
+.bar-wrap{position:relative;height:7px;background:#e5e5ea;border-radius:4px;overflow:visible}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s}
+.bar-thresh{position:absolute;top:-3px;width:2px;height:13px;border-radius:1px;background:var(--org)}
+
+/* ─── Cost alert rules ────────────────────────────── */
+.rule-item{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:.5px solid var(--bg)}
+.rule-item:last-child{border-bottom:none;padding-bottom:0}
+.rule-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.rule-body{flex:1;min-width:0}
+.rule-name{font-size:13px;font-weight:600}
+.rule-desc{font-size:11px;color:var(--t2);margin-top:1px}
+.rule-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+
+/* ─── Controls ────────────────────────────────────── */
+.date-in{font-size:13px;font-weight:600;color:var(--blu);background:var(--bg);border:none;border-radius:7px;padding:5px 9px;font-family:var(--sans);outline:none;cursor:pointer}
+.prob-item{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.prob-item:last-child{margin-bottom:0}
+.prob-label{font-size:12px;font-weight:600;width:90px;flex-shrink:0}
+.prob-tr{flex:1;height:9px;background:#e5e5ea;border-radius:5px;overflow:hidden;cursor:pointer}
+.prob-fi{height:100%;border-radius:5px;transition:width .5s ease}
+.prob-pct{font-size:12px;font-weight:700;width:32px;text-align:right;font-family:var(--mono);flex-shrink:0}
+.path-card{background:var(--bg);border-radius:var(--r2);padding:12px;margin-bottom:8px;border-left:4px solid var(--grn)}
+.path-card.og{border-left-color:var(--org)}
+.path-t{font-size:13px;font-weight:700;margin-bottom:4px}
+.path-d{font-size:12px;color:var(--t2);line-height:1.45;margin-bottom:7px}
+.pills{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px}
+.pill{font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:var(--card)}
+.opt-btn{width:100%;border:none;border-radius:9px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:opacity .15s}
+.opt-btn:hover{opacity:.88}
+.opt-btn.done{background:#e5e5ea!important;color:var(--t2)!important}
+
+/* ─── Chat ────────────────────────────────────────── */
+.chat-hdr{background:var(--card);padding:10px 14px;border-bottom:.5px solid var(--bdr);display:flex;align-items:center;gap:10px}
+.chat-av{width:34px;height:34px;border-radius:50%;background:var(--blu);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;font-family:var(--mono)}
+.chat-name{font-size:15px;font-weight:700}
+.chat-sub{font-size:11px;color:var(--grn);font-weight:500}
+.ctx-bar{padding:7px 14px;background:var(--card);border-bottom:.5px solid var(--bdr);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ctx-lbl{font-size:11px;font-weight:700;color:var(--blu);flex-shrink:0}
+.ctx-chip{background:var(--blud);color:var(--blut);font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.msgs{padding:10px 14px;display:flex;flex-direction:column;gap:7px;min-height:200px}
+.mw{display:flex;flex-direction:column;gap:2px}
+.mw.u{align-items:flex-end}.mw.b{align-items:flex-start}
+.mn{font-size:10px;color:var(--t3);padding:0 4px}
+.bub{padding:9px 12px;border-radius:14px;max-width:90%;font-size:13px;line-height:1.5}
+.bub.u{background:var(--blu);color:#fff;border-bottom-right-radius:3px}
+.bub.b{background:var(--card);color:var(--t);border-bottom-left-radius:3px}
+.qrs{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.qr{padding:6px 11px;background:var(--card);border:1.5px solid rgba(0,122,255,.3);border-radius:18px;font-size:12px;font-weight:600;color:var(--blu);cursor:pointer;white-space:nowrap}
+.typing{display:flex;gap:3px;padding:9px 12px;background:var(--card);border-radius:14px;border-bottom-left-radius:3px;width:48px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--t3);animation:blink 1.2s infinite}
+.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+.chat-input-row{display:flex;align-items:center;gap:7px;padding:8px 14px;background:var(--card);border-top:.5px solid var(--bdr)}
+.chat-inp{flex:1;background:var(--bg);border:1.5px solid transparent;border-radius:20px;padding:9px 13px;font-size:13px;outline:none;color:var(--t);font-family:var(--sans);min-width:0}
+.chat-inp:focus{border-color:var(--blu)}
+.send-btn{width:36px;height:36px;border-radius:50%;background:var(--blu);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.send-btn svg{width:16px;height:16px;fill:#fff}
+
+/* ─── Safety notice ───────────────────────────────── */
+.safety{background:var(--grnd);border-radius:var(--r2);padding:11px 13px;display:flex;gap:9px;align-items:flex-start;margin-bottom:10px}
+.safety-ico{font-size:15px;flex-shrink:0}
+.safety-t{font-size:12px;color:var(--grnt);line-height:1.5;font-weight:500}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Topbar ── -->
+  <div class="topbar">
+    <div class="logo">trade<span>agent</span></div>
+    <div class="topbar-right">
+      <span class="mode-pill mode-active" id="modePill" onclick="cycleMode()">● ACTIVE</span>
+      <span class="dry-badge">DRY RUN</span>
+    </div>
+  </div>
+
+  <!-- ── Desktop sidebar ── -->
+  <div class="sidebar">
+    <div class="sb-logo">trade<span>agent</span></div>
+    <div class="sb-item on" onclick="go('home',this)"><span class="sb-icon">🏠</span>Home</div>
+    <div class="sb-item" onclick="go('trades',this)"><span class="sb-icon">🎯</span>Trades<span class="sb-badge">5</span></div>
+    <div class="sb-item" onclick="go('charts',this)"><span class="sb-icon">📈</span>Charts</div>
+    <div class="sb-item" onclick="go('copy',this)"><span class="sb-icon">📋</span>Copy Trades<span class="sb-badge">3</span></div>
+    <div class="sb-item" onclick="go('positions',this)"><span class="sb-icon">💼</span>Positions</div>
+    <div class="sb-item" onclick="go('sprint',this)"><span class="sb-icon">⚡</span>Sprint</div>
+    <div class="sb-item" onclick="go('performance',this)"><span class="sb-icon">📊</span>Performance</div>
+    <div class="sb-item" onclick="go('chat',this)"><span class="sb-icon">💬</span>Advisor</div>
+    <div class="sb-section">Settings</div>
+    <div class="sb-item" onclick="go('controls',this)"><span class="sb-icon">🎛</span>Controls</div>
+    <div class="sb-item" onclick="go('controls',this);selSettings('goals')"><span class="sb-icon">🎯</span>Goals</div>
+    <div class="sb-item" onclick="go('controls',this);selSettings('costs')"><span class="sb-icon">💸</span>Costs</div>
+  </div>
+
+  <!-- ── Main content ── -->
+  <div class="main-content" id="main">
+
+    <!-- ════ HOME ════ -->
+    <div class="pane on" id="p-home">
+      <div class="hero">
+        <div class="hero-label">Portfolio value</div>
+        <div class="hero-val" id="heroVal">$1,240.32</div>
+        <div class="hero-chg pos" id="heroChg">
+          <span id="heroAmt">+$67.22</span>
+          <span id="heroPct">(+5.73%)</span>
+          <span class="hero-period" id="heroPeriod">All time</span>
+        </div>
+      </div>
+      <div style="padding:0 14px">
+        <div class="per-row" style="margin-top:10px" id="home-per">
+          <div class="per" onclick="selPer(this,'home-per')">1D</div>
+          <div class="per" onclick="selPer(this,'home-per')">1W</div>
+          <div class="per" onclick="selPer(this,'home-per')">1M</div>
+          <div class="per" onclick="selPer(this,'home-per')">3M</div>
+          <div class="per on" onclick="selPer(this,'home-per')">ALL</div>
+        </div>
+        <div class="ch-wrap h180"><canvas id="c-home"></canvas></div>
+      </div>
+      <div style="padding:10px 14px 0">
+        <div class="mg4" style="margin-bottom:10px">
+          <div class="met"><div class="met-l">Today</div><div class="met-v" style="color:var(--grn)">+$12.40</div></div>
+          <div class="met"><div class="met-l">Win rate</div><div class="met-v">72%</div></div>
+          <div class="met"><div class="met-l">Positions</div><div class="met-v">3</div></div>
+          <div class="met"><div class="met-l">Sharpe</div><div class="met-v" style="color:var(--grn)">1.84</div></div>
+        </div>
+        <div class="card">
+          <div class="ct">Holdings</div>
+          <div class="row">
+            <div class="row-l"><div class="row-title">Kalshi — prediction</div><div class="row-sub">3 open · 7 closed</div></div>
+            <div style="text-align:right"><div style="font-size:15px;font-weight:700;color:var(--grn);font-family:var(--mono)">+$51.81</div><span class="badge bg">+4.18%</span></div>
+          </div>
+          <div class="row">
+            <div class="row-l"><div class="row-title">Coinbase — BTC-USD</div><div class="row-sub">1 position · Apr 2</div></div>
+            <div style="text-align:right"><div style="font-size:15px;font-weight:700;color:var(--grn);font-family:var(--mono)">+$5.41</div><span class="badge bg">+10.8%</span></div>
+          </div>
+          <div class="row">
+            <div class="row-l"><div class="row-title">Copy trades (30d)</div><div class="row-sub">11 approved · 73% win</div></div>
+            <div style="text-align:right"><div style="font-size:15px;font-weight:700;color:var(--grn);font-family:var(--mono)">+$22.40</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ════ TRADES ════ -->
+    <div class="pane" id="p-trades">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px 6px">
+        <div>
+          <div style="font-size:20px;font-weight:700">Trades</div>
+          <div style="font-size:12px;color:var(--t2)" id="tr-sub">12 signals · last scan 4 min ago</div>
+        </div>
+        <button id="tr-refresh" onclick="doTradeRefresh()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--blu);color:#fff;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);flex-shrink:0">
+          <svg id="tr-refresh-ico" viewBox="0 0 24 24" width="14" height="14" fill="#fff"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4c-4.42 0-8 3.58-8 8s3.58 8 8 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+          Refresh now
+        </button>
+      </div>
+      <div style="font-size:11px;color:var(--t3);padding:0 14px 8px" id="tr-time">Kalshi, Coinbase, Reddit, X, Polymarket whales · 4 min ago</div>
+
+      <!-- Summary metrics -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:0 14px 8px">
+        <div style="background:var(--card);border-radius:11px;padding:9px;text-align:center"><div style="font-size:10px;color:var(--t2);margin-bottom:3px">Act now</div><div style="font-size:16px;font-weight:700;color:var(--grn)">5</div></div>
+        <div style="background:var(--card);border-radius:11px;padding:9px;text-align:center"><div style="font-size:10px;color:var(--t2);margin-bottom:3px">Watch</div><div style="font-size:16px;font-weight:700;color:var(--org)">4</div></div>
+        <div style="background:var(--card);border-radius:11px;padding:9px;text-align:center"><div style="font-size:10px;color:var(--t2);margin-bottom:3px">Avoid</div><div style="font-size:16px;font-weight:700;color:var(--t3)">3</div></div>
+        <div style="background:var(--card);border-radius:11px;padding:9px;text-align:center"><div style="font-size:10px;color:var(--t2);margin-bottom:3px">Top edge</div><div style="font-size:16px;font-weight:700;color:var(--blu)">+16pp</div></div>
+      </div>
+
+      <!-- Filter chips -->
+      <div style="display:flex;gap:6px;padding:0 14px 10px;overflow-x:auto">
+        <div class="per on" style="border-radius:20px;padding:6px 13px;font-size:12px" onclick="trFilter('all',this)">All (12)</div>
+        <div class="per" style="border-radius:20px;padding:6px 13px;font-size:12px" onclick="trFilter('act',this)">Act now (5)</div>
+        <div class="per" style="border-radius:20px;padding:6px 13px;font-size:12px" onclick="trFilter('watch',this)">Watch (4)</div>
+        <div class="per" style="border-radius:20px;padding:6px 13px;font-size:12px" onclick="trFilter('agent',this)">Agent</div>
+        <div class="per" style="border-radius:20px;padding:6px 13px;font-size:12px" onclick="trFilter('kalshi',this)">Kalshi</div>
+        <div class="per" style="border-radius:20px;padding:6px 13px;font-size:12px" onclick="trFilter('crypto',this)">Crypto</div>
+      </div>
+
+      <!-- Trade cards -->
+      <div id="tr-feed" style="padding-bottom:8px">
+
+        <div style="padding:4px 14px 6px;display:flex;align-items:center;gap:8px"><div style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.6px">Act now · 5 signals</div><div style="flex:1;height:.5px;background:var(--bdr)"></div></div>
+
+        <!-- T1: NBA Lakers NO -->
+        <div style="background:var(--card);border-radius:13px;margin:0 14px 9px;border-left:4px solid var(--grn)" id="tr1" data-tc="act,kalshi">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:12px 13px 8px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:10px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">reddit · r/Kalshi · 4h · <a href="https://reddit.com/r/Kalshi" target="_blank" style="color:var(--blu);text-decoration:none;font-size:11px;text-transform:none;letter-spacing:0">u/sharpbets_22 ↗</a></div>
+              <div style="font-size:15px;font-weight:700;line-height:1.3;padding-right:8px">NBA Lakers vs Celtics — NO Lakers ML</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+              <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:#d1fae5;color:#065f46">HIGH</span>
+              <span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;background:#d1fae5;color:#065f46">▲ BUY NO</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:0;padding:0 13px 8px;border-bottom:.5px solid var(--bg);overflow-x:auto">
+            <div style="flex-shrink:0;padding:6px 10px 6px 0;margin-right:10px;border-right:.5px solid var(--bg)"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">Market</div><div style="font-size:13px;font-weight:700">41¢</div></div>
+            <div style="flex-shrink:0;padding:6px 10px 6px 0;margin-right:10px;border-right:.5px solid var(--bg)"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">Estimate</div><div style="font-size:13px;font-weight:700;color:var(--grn)">55¢</div></div>
+            <div style="flex-shrink:0;padding:6px 10px 6px 0;margin-right:10px;border-right:.5px solid var(--bg)"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">Edge</div><div style="font-size:13px;font-weight:700;color:var(--grn)">+14pp</div></div>
+            <div style="flex-shrink:0;padding:6px 10px 6px 0;margin-right:10px;border-right:.5px solid var(--bg)"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">Size</div><div style="font-size:13px;font-weight:700;color:var(--blu)">$40</div></div>
+            <div style="flex-shrink:0;padding:6px 10px 6px 0;margin-right:10px;border-right:.5px solid var(--bg)"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">Expires</div><div style="font-size:13px;font-weight:700;color:var(--red)">Tonight</div></div>
+            <div style="flex-shrink:0;padding:6px 0"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">Src cred.</div><div style="font-size:13px;font-weight:700">8.7/10</div></div>
+          </div>
+          <div style="padding:8px 13px;font-size:12px;color:var(--t2);line-height:1.55;border-bottom:.5px solid var(--bg)">Public at 59% on Lakers. Sharp money tracking 45%. u/sharpbets_22 has 87% win rate on NBA NO-side over 230 trades. Whale 0x7f3a placed $6,200 BUY NO 2 hours ago.</div>
+          <div style="padding:8px 13px;display:flex;align-items:center;gap:8px;background:var(--bg)">
+            <span style="font-size:13px;flex-shrink:0">✅</span>
+            <div style="font-size:12px;font-weight:500;line-height:1.4"><strong style="color:var(--grn)">Recommended: Copy trade at $40.</strong> 14pp edge is well above threshold. Source credibility highest in feed today. Time-sensitive — expires tonight.</div>
+          </div>
+          <div style="display:flex;gap:7px;padding:10px 13px">
+            <button onclick="trAct('tr1')" style="flex:2;background:var(--grn);color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)">Copy trade · $40</button>
+            <button onclick="trDetail('tr1')" style="flex:1;background:var(--bg);color:var(--blu);border:none;border-radius:10px;padding:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans)">Details ↓</button>
+            <button onclick="trDismiss('tr1')" style="flex:1;background:var(--bg);color:var(--t2);border:none;border-radius:10px;padding:10px;font-size:12px;cursor:pointer;font-family:var(--sans)">Skip</button>
+          </div>
+          <div id="dttr1" style="display:none;border-top:.5px solid var(--bg);padding:10px 13px">
+            <div style="font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Key risks</div>
+            <div style="font-size:12px;color:var(--t2);line-height:1.55"><span style="color:var(--red);font-weight:700">Late injury news</span> — Celtics injury before tip-off shifts market immediately. <span style="color:var(--org);font-weight:700">Market repricing</span> — if edge closes before fill, trade loses basis. <span style="color:var(--t3);font-weight:700">Binary outcome</span> — wrong = 100% loss on position.</div>
+          </div>
+        </div>
+
+        <!-- T2: Fed Cut -->
+        <div style="background:var(--card);border-radius:13px;margin:0 14px 9px;border-left:4px solid var(--grn)" id="tr2" data-tc="act,kalshi">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:12px 13px 8px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:10px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">X · <a href="https://x.com/PredictTrader" target="_blank" style="color:var(--blu);text-decoration:none;font-size:11px;text-transform:none;letter-spacing:0">@PredictTrader ↗</a> · 1h ago · 4/4 Fed calls ✓</div>
+              <div style="font-size:15px;font-weight:700;line-height:1.3">Fed rate cut in May 2025 — YES</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+              <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:#d1fae5;color:#065f46">HIGH</span>
+              <span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;background:#d1fae5;color:#065f46">▲ BUY YES</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:0;padding:0 13px 8px;border-bottom:.5px solid var(--bg);overflow-x:auto">
+            <div style="flex-shrink:0;padding:6px 10px 6px 0;margin-right:10px;border-right:.5px solid var(--bg)"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">Kalshi</div><div style="font-size:13px;font-weight:700">38¢</div></div>
+            <div style="flex-shrink:0;padding:6px 10px 6px 0;margin-right:10px;border-right:.5px solid var(--bg)"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">CME FedWatch</div><div style="font-size:13px;font-weight:700;color:var(--grn)">54%</div></div>
+            <div style="flex-shrink:0;padding:6px 10px 6px 0;margin-right:10px;border-right:.5px solid var(--bg)"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">Edge</div><div style="font-size:13px;font-weight:700;color:var(--grn)">+16pp</div></div>
+            <div style="flex-shrink:0;padding:6px 10px 6px 0;margin-right:10px;border-right:.5px solid var(--bg)"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">Size</div><div style="font-size:13px;font-weight:700;color:var(--blu)">$35</div></div>
+            <div style="flex-shrink:0;padding:6px 0"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">Expires</div><div style="font-size:13px;font-weight:700">May 8</div></div>
+          </div>
+          <div style="padding:8px 13px;font-size:12px;color:var(--t2);line-height:1.55;border-bottom:.5px solid var(--bg)">CME FedWatch at 54.2% vs Kalshi 38% — 16pp gap. @PredictTrader correctly called last 4 consecutive Fed decision markets. Gap historically closes by resolution day.</div>
+          <div style="padding:8px 13px;display:flex;align-items:center;gap:8px;background:var(--bg)">
+            <span style="font-size:13px">✅</span>
+            <div style="font-size:12px;font-weight:500;line-height:1.4"><strong style="color:var(--grn)">Recommended: Buy YES at 38¢.</strong> CME vs Kalshi divergence is the most reliable arb signal. 3 days to resolution gives the gap time to close.</div>
+          </div>
+          <div style="display:flex;gap:7px;padding:10px 13px">
+            <button onclick="trAct('tr2')" style="flex:2;background:var(--grn);color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)">Copy trade · $35</button>
+            <button onclick="trDetail('tr2')" style="flex:1;background:var(--bg);color:var(--blu);border:none;border-radius:10px;padding:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans)">Details ↓</button>
+            <button onclick="trDismiss('tr2')" style="flex:1;background:var(--bg);color:var(--t2);border:none;border-radius:10px;padding:10px;font-size:12px;cursor:pointer;font-family:var(--sans)">Skip</button>
+          </div>
+          <div id="dttr2" style="display:none;border-top:.5px solid var(--bg);padding:10px 13px"><div style="font-size:12px;color:var(--t2);line-height:1.55"><span style="color:var(--red);font-weight:700">Hot CPI risk</span> — surprise Wednesday print could flip market to 15¢. <span style="color:var(--org);font-weight:700">Gap may not close</span> — happened in 2/8 recent Fed markets.</div></div>
+        </div>
+
+        <!-- T3: BTC Sprint -->
+        <div style="background:var(--card);border-radius:13px;margin:0 14px 9px;border-left:4px solid var(--pur)" id="tr3" data-tc="act,agent,crypto">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:12px 13px 8px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:10px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">🤖 Agent · Auto-detected · Just now</div>
+              <div style="font-size:15px;font-weight:700;line-height:1.3">BTC-USD momentum — Sprint opportunity</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+              <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:#ede9fe;color:#5b21b6">AGENT</span>
+              <span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;background:#ede9fe;color:#5b21b6">⚡ SPRINT</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:0;padding:0 13px 8px;border-bottom:.5px solid var(--bg);overflow-x:auto">
+            <div style="flex-shrink:0;padding:6px 10px 6px 0;margin-right:10px;border-right:.5px solid var(--bg)"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">BTC</div><div style="font-size:13px;font-weight:700">$84,100</div></div>
+            <div style="flex-shrink:0;padding:6px 10px 6px 0;margin-right:10px;border-right:.5px solid var(--bg)"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">RSI</div><div style="font-size:13px;font-weight:700;color:var(--org)">67.4</div></div>
+            <div style="flex-shrink:0;padding:6px 10px 6px 0;margin-right:10px;border-right:.5px solid var(--bg)"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">Confidence</div><div style="font-size:13px;font-weight:700;color:var(--grn)">8.7/10</div></div>
+            <div style="flex-shrink:0;padding:6px 10px 6px 0;margin-right:10px;border-right:.5px solid var(--bg)"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">Edge/trade</div><div style="font-size:13px;font-weight:700;color:var(--grn)">+1.2%</div></div>
+            <div style="flex-shrink:0;padding:6px 0"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">Window</div><div style="font-size:13px;font-weight:700">2–4h</div></div>
+          </div>
+          <div style="padding:8px 13px;font-size:12px;color:var(--t2);line-height:1.55;border-bottom:.5px solid var(--bg)">Strong uptrend with bullish EMA-20 crossover on 4H. 9 consecutive days of ETF inflows. On-chain whale accumulation. RSI 67 — momentum without being overbought.</div>
+          <div style="padding:8px 13px;display:flex;align-items:center;gap:8px;background:var(--bg)">
+            <span style="font-size:13px">⚡</span>
+            <div style="font-size:12px;font-weight:500;line-height:1.4"><strong style="color:var(--pur)">Recommended: Activate Sprint Mode for 1–2 hrs.</strong> $25/trade · +0.8% TP · -0.5% SL. Target $40–60 sprint profit. Auto-stops at -$30 loss.</div>
+          </div>
+          <div style="display:flex;gap:7px;padding:10px 13px">
+            <button onclick="trAct('tr3')" style="flex:2;background:var(--pur);color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)">⚡ Activate sprint</button>
+            <button onclick="trDismiss('tr3')" style="flex:1;background:var(--bg);color:var(--t2);border:none;border-radius:10px;padding:10px;font-size:12px;cursor:pointer;font-family:var(--sans)">Skip</button>
+          </div>
+        </div>
+
+        <div style="padding:4px 14px 6px;display:flex;align-items:center;gap:8px;margin-top:4px"><div style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.6px">Watch · 4 signals</div><div style="flex:1;height:.5px;background:var(--bdr)"></div></div>
+
+        <!-- T4: Watch -->
+        <div style="background:var(--card);border-radius:13px;margin:0 14px 9px;border-left:4px solid var(--org)" id="tr4" data-tc="watch,kalshi">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:12px 13px 8px">
+            <div style="flex:1">
+              <div style="font-size:10px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">reddit · r/sportsbook · 6h ago</div>
+              <div style="font-size:15px;font-weight:700;line-height:1.3">Trump approval above 45% — NO</div>
+            </div>
+            <span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;background:#fef3c7;color:#92400e;flex-shrink:0;margin-left:8px">👁 WATCH</span>
+          </div>
+          <div style="display:flex;gap:0;padding:0 13px 8px;border-bottom:.5px solid var(--bg);overflow-x:auto">
+            <div style="flex-shrink:0;padding:6px 10px 6px 0;margin-right:10px;border-right:.5px solid var(--bg)"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">Market</div><div style="font-size:13px;font-weight:700">44¢</div></div>
+            <div style="flex-shrink:0;padding:6px 10px 6px 0;margin-right:10px;border-right:.5px solid var(--bg)"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">Estimate</div><div style="font-size:13px;font-weight:700;color:var(--org)">52¢</div></div>
+            <div style="flex-shrink:0;padding:6px 10px 6px 0;margin-right:10px;border-right:.5px solid var(--bg)"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">Edge</div><div style="font-size:13px;font-weight:700;color:var(--org)">+8pp</div></div>
+            <div style="flex-shrink:0;padding:6px 0"><div style="font-size:10px;color:var(--t2);margin-bottom:2px">Expires</div><div style="font-size:13px;font-weight:700">1 week</div></div>
+          </div>
+          <div style="padding:8px 13px;display:flex;align-items:center;gap:8px;background:var(--bg)">
+            <span style="font-size:13px">👁</span>
+            <div style="font-size:12px;font-weight:500;line-height:1.4"><strong style="color:var(--org)">Watch — wait for Thursday polling data.</strong> 8pp edge real but political markets are noisy. If edge widens to 10pp+ after Thursday poll, act.</div>
+          </div>
+          <div style="display:flex;gap:7px;padding:10px 13px">
+            <button onclick="trAct('tr4')" style="flex:2;background:var(--org);color:#000;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)">Add to watchlist</button>
+            <button onclick="trDismiss('tr4')" style="flex:1;background:var(--bg);color:var(--t2);border:none;border-radius:10px;padding:10px;font-size:12px;cursor:pointer;font-family:var(--sans)">Dismiss</button>
+          </div>
+        </div>
+
+        <div style="padding:4px 14px 6px;display:flex;align-items:center;gap:8px;margin-top:4px"><div style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.6px">Avoid · 2 signals</div><div style="flex:1;height:.5px;background:var(--bdr)"></div></div>
+
+        <!-- T5: Avoid -->
+        <div style="background:var(--card);border-radius:13px;margin:0 14px 9px;border-left:4px solid var(--t3);opacity:.75" id="tr5" data-tc="avoid,kalshi">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:12px 13px 8px">
+            <div style="flex:1">
+              <div style="font-size:10px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">🤖 Agent · Category blocked</div>
+              <div style="font-size:15px;font-weight:700;line-height:1.3">CPI above 3.2% in May — YES</div>
+            </div>
+            <span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;background:#fee2e2;color:#991b1b;flex-shrink:0;margin-left:8px">✕ AVOID</span>
+          </div>
+          <div style="padding:8px 13px;display:flex;align-items:center;gap:8px;background:var(--bg)">
+            <span style="font-size:13px">🚫</span>
+            <div style="font-size:12px;font-weight:500;line-height:1.4"><strong style="color:var(--red)">Category blocked — CPI/Macro: 25% win rate, -$65 cumulative.</strong> Your risk rules automatically block this. No action needed.</div>
+          </div>
+          <div style="display:flex;gap:7px;padding:10px 13px">
+            <button style="flex:1;background:#e5e5ea;color:var(--t2);border:none;border-radius:10px;padding:10px;font-size:13px;cursor:pointer;font-family:var(--sans)">Auto-blocked ✓</button>
+            <button onclick="trDismiss('tr5')" style="flex:1;background:var(--bg);color:var(--t2);border:none;border-radius:10px;padding:10px;font-size:12px;cursor:pointer;font-family:var(--sans)">Dismiss</button>
+          </div>
+        </div>
+
+      </div><!-- /tr-feed -->
+    </div><!-- /p-trades -->
+
+    <!-- ════ CHARTS ════ -->
+    <div class="pane" id="p-charts">
+      <div class="chip-row" style="margin-bottom:8px">
+        <div class="chip on" onclick="selChip(this,'charts-chips','ct-btc')">BTC-USD</div>
+        <div class="chip" onclick="selChip(this,'charts-chips','ct-kal')">Lakers NO</div>
+        <div class="chip" onclick="selChip(this,'charts-chips','ct-fed')">Fed Cut</div>
+        <div class="chip" onclick="selChip(this,'charts-chips','ct-edge')">Edge scan</div>
+      </div>
+      <div id="charts-chips">
+        <!-- BTC -->
+        <div class="sub-tab on" id="ct-btc">
+          <div class="card">
+            <div class="card-hdr"><div><div class="ch-t">BTC-USD · Coinbase</div><div class="ch-s">RSI 67 · Bullish MACD</div></div><span class="badge bg">+1.08%</span></div>
+            <div class="per-row" id="btc-per"><div class="per" onclick="selPer(this,'btc-per')">1H</div><div class="per" onclick="selPer(this,'btc-per')">4H</div><div class="per on" onclick="selPer(this,'btc-per')">1D</div><div class="per" onclick="selPer(this,'btc-per')">1W</div></div>
+            <div class="ch-wrap h130"><canvas id="c-btc"></canvas></div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">
+              <div style="padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;border:1.5px solid var(--org);color:var(--org);cursor:pointer;opacity:1" onclick="this.style.opacity=this.style.opacity==='0.4'?'1':'0.4'">EMA 20</div>
+              <div style="padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;border:1.5px solid var(--pur);color:var(--pur);cursor:pointer;opacity:1" onclick="this.style.opacity=this.style.opacity==='0.4'?'1':'0.4'">Bollinger</div>
+              <div style="padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;border:1.5px solid var(--red);color:var(--red);cursor:pointer;opacity:0.4" onclick="this.style.opacity=this.style.opacity==='0.4'?'1':'0.4'">RSI</div>
+              <div style="padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;border:1.5px solid var(--grn);color:var(--grn);cursor:pointer;opacity:0.4" onclick="this.style.opacity=this.style.opacity==='0.4'?'1':'0.4'">MACD</div>
+            </div>
+            <div class="mg3" style="margin-top:10px">
+              <div class="met"><div class="met-l">RSI</div><div class="met-v" style="color:var(--org)">67.4</div></div>
+              <div class="met"><div class="met-l">Trend</div><div class="met-v" style="color:var(--grn)">↑</div></div>
+              <div class="met"><div class="met-l">ATR</div><div class="met-v">$1,240</div></div>
+            </div>
+            <div class="ins ins-grn" style="margin-top:10px">
+              <div class="ins-t">Entry signal · 8.7/10</div>
+              <div class="ins-d">EMA-20 holding. Bullish engulfing 4H. Entry $84,100 · Target $85,780 · Stop $82,800 · R:R 1:2.4</div>
+            </div>
+          </div>
+        </div>
+        <!-- Lakers -->
+        <div class="sub-tab" id="ct-kal">
+          <div class="card">
+            <div class="card-hdr"><div><div class="ch-t">NBA Lakers NO ML</div><div class="ch-s">Kalshi · KXNBA-LAL · Tonight</div></div><span class="badge bg">+14pp</span></div>
+            <div class="per-row" id="kal-per"><div class="per on" onclick="selPer(this,'kal-per')">24H</div><div class="per" onclick="selPer(this,'kal-per')">7D</div><div class="per" onclick="selPer(this,'kal-per')">ALL</div></div>
+            <div class="ch-wrap h110"><canvas id="c-kal"></canvas></div>
+            <div style="margin-top:10px">
+              <div style="height:9px;background:#e5e5ea;border-radius:5px;overflow:hidden;margin:5px 0"><div style="height:100%;width:41%;background:var(--grn);border-radius:5px"></div></div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:600"><span style="color:var(--grn)">NO 59% (sharp)</span><span style="color:var(--red)">YES 41% (public)</span></div>
+              <div style="font-size:10px;color:var(--t3);margin-top:3px">Market at 41¢ · Agent estimate 55¢ · Gap 14pp</div>
+            </div>
+          </div>
+        </div>
+        <!-- Fed -->
+        <div class="sub-tab" id="ct-fed">
+          <div class="card">
+            <div class="card-hdr"><div><div class="ch-t">Fed Rate Cut — May</div><div class="ch-s">Kalshi · Resolves May 8 · 3 days</div></div><span class="badge bo">3d</span></div>
+            <div class="leg-row"><div class="leg"><div class="leg-line" style="background:var(--blu)"></div>Kalshi</div><div class="leg"><div class="leg-line" style="background:var(--org)"></div>CME FedWatch</div><div class="leg"><div class="leg-line" style="background:var(--grn)"></div>Agent est.</div></div>
+            <div class="ch-wrap h110"><canvas id="c-fed"></canvas></div>
+            <div class="ins ins-grn" style="margin-top:10px">
+              <div class="ins-t">Arbitrage signal · 16pp gap</div>
+              <div class="ins-d">CME 54% vs Kalshi 38%. Gap closed in 6/8 recent Fed markets. Buy 38¢ → Target 52¢ · Stop 28¢</div>
+            </div>
+          </div>
+        </div>
+        <!-- Edge -->
+        <div class="sub-tab" id="ct-edge">
+          <div class="card">
+            <div class="card-hdr"><div class="ch-t">Edge scanner</div><div style="font-size:11px;color:var(--t2)">Updated 4m ago</div></div>
+            <div class="ch-wrap h100"><canvas id="c-edge"></canvas></div>
+            <div style="margin-top:10px;display:flex;flex-direction:column;gap:7px">
+              <div style="display:flex;align-items:center;gap:8px"><div style="font-size:12px;font-weight:600;width:120px;flex-shrink:0">NBA Lakers NO</div><div style="flex:1;height:7px;background:#e5e5ea;border-radius:4px;overflow:hidden"><div style="height:100%;width:93%;background:var(--grn);border-radius:4px"></div></div><div style="font-size:12px;font-weight:700;color:var(--grn);width:36px;text-align:right">+14pp</div></div>
+              <div style="display:flex;align-items:center;gap:8px"><div style="font-size:12px;font-weight:600;width:120px;flex-shrink:0">Fed Cut YES</div><div style="flex:1;height:7px;background:#e5e5ea;border-radius:4px;overflow:hidden"><div style="height:100%;width:93%;background:var(--grn);border-radius:4px"></div></div><div style="font-size:12px;font-weight:700;color:var(--grn);width:36px;text-align:right">+14pp</div></div>
+              <div style="display:flex;align-items:center;gap:8px"><div style="font-size:12px;font-weight:600;width:120px;flex-shrink:0">BTC $95k Apr</div><div style="flex:1;height:7px;background:#e5e5ea;border-radius:4px;overflow:hidden"><div style="height:100%;width:53%;background:var(--org);border-radius:4px"></div></div><div style="font-size:12px;font-weight:700;color:var(--org);width:36px;text-align:right">+8pp</div></div>
+              <div style="display:flex;align-items:center;gap:8px;opacity:.4"><div style="font-size:12px;font-weight:600;width:120px;flex-shrink:0">Dow 43k</div><div style="flex:1;height:7px;background:#e5e5ea;border-radius:4px;overflow:hidden"><div style="height:100%;width:20%;background:var(--t3);border-radius:4px"></div></div><div style="font-size:12px;font-weight:700;color:var(--t3);width:36px;text-align:right">+3pp</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ COPY TRADES ════ -->
+    <div class="pane" id="p-copy">
+      <div class="copy-card">
+        <div class="cc-top">
+          <div><div class="cc-src">reddit · r/Kalshi · 4h ago</div><a class="cc-link" href="https://reddit.com/r/Kalshi" target="_blank">u/sharpbets_22 · 87% win rate ↗</a></div>
+          <span class="badge bg">HIGH</span>
+        </div>
+        <div class="cc-mkt">NBA Lakers vs Celtics — NO Lakers ML</div>
+        <div class="cc-stats">
+          <div><div class="cc-stat-l">Platform</div><div class="cc-stat-v" style="color:var(--blu)">Kalshi</div></div>
+          <div><div class="cc-stat-l">Market</div><div class="cc-stat-v">41¢</div></div>
+          <div><div class="cc-stat-l">Est.</div><div class="cc-stat-v" style="color:var(--grn)">55¢</div></div>
+          <div><div class="cc-stat-l">Edge</div><div class="cc-stat-v" style="color:var(--grn)">+14pp</div></div>
+          <div><div class="cc-stat-l">Size</div><div class="cc-stat-v" style="color:var(--blu)">$40</div></div>
+        </div>
+        <div class="cc-rationale">Sharp money at 45% vs Kalshi's 59%. u/sharpbets_22 has 87% win rate on NBA NO-side over 230 posts. Whale 0x7f3a placed $6,200 on NO 2h ago.</div>
+        <div class="cc-actions"><button class="btn-p">Copy trade · $40</button><button class="btn-d">Analysis ↓</button><button class="btn-s">Skip</button></div>
+      </div>
+      <div class="copy-card">
+        <div class="cc-top">
+          <div><div class="cc-src">X / Twitter · 1h ago</div><a class="cc-link" href="https://x.com/PredictTrader" target="_blank">@PredictTrader · 41.2K followers ↗</a></div>
+          <span class="badge bg">HIGH</span>
+        </div>
+        <div class="cc-mkt">Fed rate cut in May 2025 — YES</div>
+        <div class="cc-stats">
+          <div><div class="cc-stat-l">Market</div><div class="cc-stat-v">38¢</div></div>
+          <div><div class="cc-stat-l">Est.</div><div class="cc-stat-v" style="color:var(--grn)">52¢</div></div>
+          <div><div class="cc-stat-l">Edge</div><div class="cc-stat-v" style="color:var(--grn)">+14pp</div></div>
+          <div><div class="cc-stat-l">Time</div><div class="cc-stat-v">3 days</div></div>
+        </div>
+        <div class="cc-rationale">CME FedWatch at 54% vs Kalshi 38%. 4/4 correct Fed calls from this account. Gap historically closes by resolution.</div>
+        <div class="cc-actions"><button class="btn-p">Copy trade · $35</button><button class="btn-d">Analysis ↓</button><button class="btn-s">Skip</button></div>
+      </div>
+      <!-- Source tracker collapsible -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleEl('src-panel','src-tog')">
+          <div class="ct" style="margin-bottom:0">Source track record</div>
+          <div style="font-size:12px;color:var(--blu);font-weight:600" id="src-tog">Show ↓</div>
+        </div>
+        <div id="src-panel" style="display:none;margin-top:10px">
+          <div class="ch-wrap h80" style="margin-bottom:10px"><canvas id="c-src-mini"></canvas></div>
+          <div class="src-item"><div class="src-info"><div class="src-name">u/sharpbets_22</div><div class="src-trades">23 trades</div></div><div class="src-track"><div class="src-fill" style="width:87%;background:var(--grn)"></div></div><div class="src-pct" style="color:var(--grn)">87%</div><div class="src-pnl" style="color:var(--grn)">+$138</div></div>
+          <div class="src-item"><div class="src-info"><div class="src-name">@PredictTrader</div><div class="src-trades">8 trades</div></div><div class="src-track"><div class="src-fill" style="width:75%;background:var(--grn)"></div></div><div class="src-pct" style="color:var(--grn)">75%</div><div class="src-pnl" style="color:var(--grn)">+$64</div></div>
+          <div class="src-item"><div class="src-info"><div class="src-name">Discord #signals</div><div class="src-trades">4 trades</div></div><div class="src-track"><div class="src-fill" style="width:44%;background:var(--red)"></div></div><div class="src-pct" style="color:var(--red)">44%</div><div class="src-pnl" style="color:var(--red)">-$11</div></div>
+          <div class="ins ins-red" style="margin-top:8px"><div class="ins-t">Auto-mute suggestion</div><div class="ins-d">Discord #signals below 50% win rate. Consider muting in scanner settings.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ POSITIONS ════ -->
+    <div class="pane" id="p-positions">
+      <div class="safety"><span class="safety-ico">🔒</span><div class="safety-t">Trade-only API access. No withdrawals, no deposits, no access to linked bank accounts.</div></div>
+      <div class="pos-card">
+        <div class="pc-top"><div><div class="pc-name">NBA Lakers — NO ML</div><div class="pc-plat">Kalshi · Apr 3 · $25</div></div><div class="pc-pnl" style="color:var(--grn)">+$3.95</div></div>
+        <div class="ch-wrap h80"><canvas id="c-p1"></canvas></div>
+        <div class="pc-controls">
+          <div class="pc-ctrl"><div class="pc-cl">Stop loss</div><div class="pc-row"><div class="sb-small" onclick="adjPos('sl1',-1)">−</div><div class="pc-val" style="color:var(--red)" id="sl1">25¢</div><div class="sb-small" onclick="adjPos('sl1',1)">+</div></div></div>
+          <div class="pc-ctrl"><div class="pc-cl">Take profit</div><div class="pc-row"><div class="sb-small" onclick="adjPos('tp1',-1)">−</div><div class="pc-val" style="color:var(--grn)" id="tp1">65¢</div><div class="sb-small" onclick="adjPos('tp1',1)">+</div></div></div>
+        </div>
+      </div>
+      <div class="pos-card">
+        <div class="pc-top"><div><div class="pc-name">Fed Cut May — YES</div><div class="pc-plat">Kalshi · Apr 4 · $35</div></div><div class="pc-pnl" style="color:var(--grn)">+$3.41</div></div>
+        <div class="ch-wrap h80"><canvas id="c-p2"></canvas></div>
+        <div class="pc-controls">
+          <div class="pc-ctrl"><div class="pc-cl">Stop loss</div><div class="pc-row"><div class="sb-small" onclick="adjPos('sl2',-1)">−</div><div class="pc-val" style="color:var(--red)" id="sl2">28¢</div><div class="sb-small" onclick="adjPos('sl2',1)">+</div></div></div>
+          <div class="pc-ctrl"><div class="pc-cl">Take profit</div><div class="pc-row"><div class="sb-small" onclick="adjPos('tp2',-1)">−</div><div class="pc-val" style="color:var(--grn)" id="tp2">70¢</div><div class="sb-small" onclick="adjPos('tp2',1)">+</div></div></div>
+        </div>
+      </div>
+      <div class="pos-card">
+        <div class="pc-top"><div><div class="pc-name">BTC-USD</div><div class="pc-plat">Coinbase · Apr 2 · $50</div></div><div class="pc-pnl" style="color:var(--grn)">+$5.41</div></div>
+        <div class="ch-wrap h80"><canvas id="c-p3"></canvas></div>
+        <div class="pc-controls">
+          <div class="pc-ctrl"><div class="pc-cl">Stop loss</div><div class="pc-row"><div class="sb-small">−</div><div class="pc-val" style="color:var(--red)">$81k</div><div class="sb-small">+</div></div></div>
+          <div class="pc-ctrl"><div class="pc-cl">Take profit</div><div class="pc-row"><div class="sb-small">−</div><div class="pc-val" style="color:var(--grn)">$90k</div><div class="sb-small">+</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ SPRINT ════ -->
+    <div class="pane" id="p-sprint">
+      <!-- Active sprint -->
+      <div class="sprint-banner">
+        <div class="sprint-glow"></div>
+        <div class="sprint-label"><div class="sprint-pulse"></div>SPRINT ACTIVE</div>
+        <div class="sprint-asset">BTC-USD</div>
+        <div class="sprint-pnl">+$18.40 this sprint</div>
+        <div class="sprint-grid">
+          <div class="sg"><div class="sg-l">Trades</div><div class="sg-v">8</div></div>
+          <div class="sg"><div class="sg-l">Win rate</div><div class="sg-v" style="color:#00d68f">75%</div></div>
+          <div class="sg"><div class="sg-l">Remaining</div><div class="sg-v">47m</div></div>
+          <div class="sg"><div class="sg-l">Conf.</div><div class="sg-v" style="color:#ffd60a">8.2</div></div>
+          <div class="sg"><div class="sg-l">Stop</div><div class="sg-v">$50</div></div>
+          <div class="sg"><div class="sg-l">Limit</div><div class="sg-v" style="color:#ff453a">-$30</div></div>
+        </div>
+        <div class="ch-wrap h80" style="margin-bottom:12px"><canvas id="c-sprint"></canvas></div>
+        <div class="sprint-btns"><button class="sp-btn sp-pause">⏸ Pause</button><button class="sp-btn sp-stop">■ Stop sprint</button></div>
+      </div>
+      <!-- Opportunity -->
+      <div class="card" style="border-left:4px solid var(--org)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div><div style="font-size:11px;font-weight:700;color:var(--org);margin-bottom:3px">OPPORTUNITY QUEUED</div><div style="font-size:15px;font-weight:700">Kalshi — NBA NO-side momentum</div></div>
+          <span class="badge bo">8.5/10</span>
+        </div>
+        <div class="mg3" style="margin-bottom:10px">
+          <div class="met"><div class="met-l">Confidence</div><div class="met-v" style="color:var(--org)">8.5/10</div></div>
+          <div class="met"><div class="met-l">Window</div><div class="met-v">2–4h</div></div>
+          <div class="met"><div class="met-l">Edge/trade</div><div class="met-v" style="color:var(--grn)">+1.1%</div></div>
+        </div>
+        <button style="width:100%;background:var(--org);color:#000;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans)">Queue after current sprint →</button>
+      </div>
+    </div>
+
+    <!-- ════ PERFORMANCE ════ -->
+    <div class="pane" id="p-performance">
+      <div class="mg4" style="margin-bottom:10px">
+        <div class="met"><div class="met-l">P&L</div><div class="met-v" style="color:var(--grn)">+$67</div></div>
+        <div class="met"><div class="met-l">Win rate</div><div class="met-v">72%</div></div>
+        <div class="met"><div class="met-l">Sharpe</div><div class="met-v" style="color:var(--grn)">1.84</div></div>
+        <div class="met"><div class="met-l">Max DD</div><div class="met-v" style="color:var(--red)">-$18</div></div>
+      </div>
+      <div class="chip-row" id="perf-chips" style="margin-bottom:8px">
+        <div class="chip on" onclick="selChip(this,'perf-chips','ps-pnl')">P&L</div>
+        <div class="chip" onclick="selChip(this,'perf-chips','ps-risk')">Risk</div>
+        <div class="chip" onclick="selChip(this,'perf-chips','ps-patterns')">Patterns</div>
+        <div class="chip" onclick="selChip(this,'perf-chips','ps-sources')">Sources</div>
+      </div>
+      <!-- P&L -->
+      <div class="sub-tab on" id="ps-pnl">
+        <div class="card">
+          <div class="card-hdr"><div class="ch-t">Cumulative P&L</div><span class="badge bg">+5.73% all time</span></div>
+          <div class="per-row" id="pf-per"><div class="per" onclick="selPer(this,'pf-per')">1W</div><div class="per" onclick="selPer(this,'pf-per')">1M</div><div class="per" onclick="selPer(this,'pf-per')">3M</div><div class="per on" onclick="selPer(this,'pf-per')">ALL</div></div>
+          <div class="ch-wrap h110"><canvas id="c-pnl"></canvas></div>
+        </div>
+        <div class="mg2">
+          <div class="card card-sm"><div class="ct">Win / loss</div><div class="ch-wrap h90"><canvas id="c-wl"></canvas></div><div style="font-size:11px;color:var(--t2);margin-top:5px">20W · 8L · Avg win +$8.40</div></div>
+          <div class="card card-sm"><div class="ct">Outcome dist.</div><div class="ch-wrap h90"><canvas id="c-dist"></canvas></div><div style="font-size:11px;color:var(--t2);margin-top:5px">No fat left tail — good shape</div></div>
+        </div>
+      </div>
+      <!-- Risk -->
+      <div class="sub-tab" id="ps-risk">
+        <div class="card">
+          <div class="card-hdr"><div><div class="ch-t">Drawdown</div><div class="ch-s">Red = trough from peak</div></div><span class="badge br">Max -$18</span></div>
+          <div class="leg-row"><div class="leg"><div class="leg-line" style="background:var(--grn)"></div>Portfolio</div><div class="leg"><div class="leg-line" style="background:var(--red)"></div>Drawdown</div></div>
+          <div class="ch-wrap h120"><canvas id="c-dd"></canvas></div>
+          <div style="font-size:11px;color:var(--t2);margin-top:6px">Longest: 4 days (Mar 28–Apr 1) · Recovered fully</div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><div><div class="ch-t">Sharpe ratio</div><div class="ch-s">Risk-adjusted return over time</div></div><span class="badge bg">1.84 now</span></div>
+          <div class="ch-wrap h90"><canvas id="c-sharpe"></canvas></div>
+          <div class="ins ins-blue" style="margin-top:0"><div class="ins-t">Your score of 1.84 is excellent</div><div class="ins-d">Above 1.5 is institutional-grade. Watch for drops below 1.0 which signal strategy decay.</div></div>
+        </div>
+      </div>
+      <!-- Patterns -->
+      <div class="sub-tab" id="ps-patterns">
+        <div class="card">
+          <div class="card-hdr"><div class="ch-t">P&L by day of week</div></div>
+          <div class="ch-wrap h90"><canvas id="c-days"></canvas></div>
+          <div class="ins ins-org" style="margin-top:0"><div class="ins-t">Monday is your weakest day</div><div class="ins-d">Tue & Thu outperform. Consider restricting Monday to monitor-only in schedule settings.</div></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><div><div class="ch-t">Sprint: confidence vs outcome</div><div class="ch-s">Does higher confidence = better result?</div></div></div>
+          <div class="leg-row"><div class="leg"><div class="leg-dot" style="background:var(--grn)"></div>Win</div><div class="leg"><div class="leg-dot" style="background:var(--red)"></div>Loss</div></div>
+          <div class="ch-wrap h90"><canvas id="c-scat"></canvas></div>
+          <div style="font-size:11px;color:var(--t2);margin-top:6px">Strong correlation above 8/10. Raising sprint threshold to 8.0 would have cut 3 losing trades.</div>
+        </div>
+      </div>
+      <!-- Sources -->
+      <div class="sub-tab" id="ps-sources">
+        <div class="card">
+          <div class="ct">Source win rate — 30 days</div>
+          <div class="ch-wrap h90"><canvas id="c-srcbar"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="ct">Source performance</div>
+          <div class="src-item"><div class="src-info"><div class="src-name">u/sharpbets_22</div><div class="src-trades">23 · reddit</div></div><div class="src-track"><div class="src-fill" style="width:87%;background:var(--grn)"></div></div><div class="src-pct" style="color:var(--grn)">87%</div><div class="src-pnl" style="color:var(--grn)">+$138</div></div>
+          <div class="src-item"><div class="src-info"><div class="src-name">@PredictTrader</div><div class="src-trades">8 · X</div></div><div class="src-track"><div class="src-fill" style="width:75%;background:var(--grn)"></div></div><div class="src-pct" style="color:var(--grn)">75%</div><div class="src-pnl" style="color:var(--grn)">+$64</div></div>
+          <div class="src-item"><div class="src-info"><div class="src-name">Whale 0x7f3a</div><div class="src-trades">12 · Polymarket</div></div><div class="src-track"><div class="src-fill" style="width:71%;background:var(--grn)"></div></div><div class="src-pct" style="color:var(--grn)">71%</div><div class="src-pnl" style="color:var(--grn)">+$41</div></div>
+          <div class="src-item"><div class="src-info"><div class="src-name">Agent (auto)</div><div class="src-trades">18 · Claude</div></div><div class="src-track"><div class="src-fill" style="width:67%;background:var(--org)"></div></div><div class="src-pct" style="color:var(--org)">67%</div><div class="src-pnl" style="color:var(--grn)">+$29</div></div>
+          <div class="src-item"><div class="src-info"><div class="src-name">Discord #signals</div><div class="src-trades">4 · discord</div></div><div class="src-track"><div class="src-fill" style="width:44%;background:var(--red)"></div></div><div class="src-pct" style="color:var(--red)">44%</div><div class="src-pnl" style="color:var(--red)">-$11</div></div>
+          <div class="ins ins-red" style="margin-top:8px"><div class="ins-t">Auto-mute suggestion</div><div class="ins-d">Discord #signals is 44% win with negative P&L. Consider muting in scanner.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ ADVISOR CHAT ════ -->
+    <div class="pane" id="p-chat" style="padding:0">
+      <div class="chat-hdr"><div class="chat-av">AI</div><div><div class="chat-name">Trade Advisor</div><div class="chat-sub">● Live · knows your portfolio</div></div></div>
+      <div class="ctx-bar"><div class="ctx-lbl">Context:</div><div class="ctx-chip">3 positions</div><div class="ctx-chip">+$67 P&L</div><div class="ctx-chip">Risk: balanced</div><div class="ctx-chip">Kalshi active</div></div>
+      <div class="msgs" id="msgs">
+        <div class="mw b"><div class="mn">Trade Advisor</div><div class="bub b">Hey — I know your open positions and risk settings. Ask me anything about a trade or strategy.<div class="qrs"><div class="qr" onclick="sendQ(this)">Should I size up on Lakers NO?</div><div class="qr" onclick="sendQ(this)">Explain the Fed trade risk</div><div class="qr" onclick="sendQ(this)">Am I too concentrated?</div></div></div></div>
+      </div>
+      <div class="chat-input-row"><input class="chat-inp" id="chatInp" placeholder="Ask about any trade..." onkeydown="if(event.key==='Enter')sendChat()"><button class="send-btn" onclick="sendChat()"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button></div>
+    </div>
+
+    <!-- ════ SETTINGS (Controls / Goals / Costs) ════ -->
+    <div class="pane" id="p-controls">
+      <!-- Settings chip nav — visible on mobile and desktop -->
+      <div class="chip-row" style="margin-bottom:8px">
+        <div class="chip on" id="sc-ctrl" onclick="selSettings('ctrl')">Controls</div>
+        <div class="chip" id="sc-goals" onclick="selSettings('goals')">Goals</div>
+        <div class="chip" id="sc-costs" onclick="selSettings('costs')">Costs</div>
+        <div class="chip" id="sc-apikey" onclick="selSettings('apikey')">API Key</div>
+      </div>
+      <!-- Controls sub-pane -->
+      <div id="ss-ctrl">
+      <div class="card">
+        <div class="ct">Agent mode</div>
+        <div class="row"><div class="row-l"><div class="row-title">Status</div></div><div class="seg"><div class="seg-o on" onclick="selSeg(this)">Active</div><div class="seg-o" onclick="selSeg(this)">Monitor</div><div class="seg-o" onclick="selSeg(this)">Paused</div></div></div>
+        <div class="row"><div class="row-l"><div class="row-title">Dry run</div><div class="row-sub">No real trades</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="row"><div class="row-l"><div class="row-title">Risk profile</div></div><div class="seg"><div class="seg-o" onclick="selSeg(this)">Low</div><div class="seg-o on" onclick="selSeg(this)">Medium</div><div class="seg-o" onclick="selSeg(this)">High</div></div></div>
+      </div>
+      <div class="card">
+        <div class="ct">Position limits</div>
+        <div class="row"><div class="row-l"><div class="row-title">Max trade size</div><div class="row-sub">Per trade</div></div><div class="adj"><button class="ab" onclick="adjCtrl('mt',-5)">−</button><div class="av" id="mt">$50</div><button class="ab" onclick="adjCtrl('mt',5)">+</button></div></div>
+        <div class="row"><div class="row-l"><div class="row-title">Daily loss limit</div><div class="row-sub">Agent pauses if hit</div></div><div class="adj"><button class="ab" onclick="adjCtrl('dl',-25)">−</button><div class="av" id="dl">$200</div><button class="ab" onclick="adjCtrl('dl',25)">+</button></div></div>
+        <div class="row"><div class="row-l"><div class="row-title">Approval above</div><div class="row-sub">Requires your OK</div></div><div class="adj"><button class="ab" onclick="adjCtrl('ap',-5)">−</button><div class="av" id="ap">$75</div><button class="ab" onclick="adjCtrl('ap',5)">+</button></div></div>
+        <div class="row"><div class="row-l"><div class="row-title">Min conviction</div><div class="row-sub">Claude threshold</div></div><div class="adj"><button class="ab" onclick="adjCtrl('mc',-1)">−</button><div class="av" id="mc">7/10</div><button class="ab" onclick="adjCtrl('mc',1)">+</button></div></div>
+      </div>
+      <div class="card">
+        <div class="ct">Trading schedule</div>
+        <div class="row"><div class="row-l"><div class="row-title">Active days</div></div></div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;padding:6px 0">
+          <button class="dpill on" onclick="this.classList.toggle('on')">Mon</button>
+          <button class="dpill on" onclick="this.classList.toggle('on')">Tue</button>
+          <button class="dpill on" onclick="this.classList.toggle('on')">Wed</button>
+          <button class="dpill on" onclick="this.classList.toggle('on')">Thu</button>
+          <button class="dpill on" onclick="this.classList.toggle('on')">Fri</button>
+          <button class="dpill" onclick="this.classList.toggle('on')">Sat</button>
+          <button class="dpill" onclick="this.classList.toggle('on')">Sun</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ct">Platforms</div>
+        <div class="row"><div class="row-l"><div class="row-title">Kalshi</div><div class="row-sub">Connected · 0% fees</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="row"><div class="row-l"><div class="row-title">Polymarket</div><div class="row-sub">US waitlist — data only</div></div><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
+        <div class="row"><div class="row-l"><div class="row-title">Coinbase</div><div class="row-sub">Add API key to enable</div></div><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
+        <div class="row"><div class="row-l"><div class="row-title">Robinhood</div><div class="row-sub">Add credentials to enable</div></div><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
+        <div class="safety" style="margin-top:10px;margin-bottom:0"><span class="safety-ico">🔒</span><div class="safety-t">Trade-only API permissions. No withdrawal or deposit access on any platform.</div></div>
+      </div>
+      </div><!-- /ss-ctrl -->
+      <!-- Goals sub-pane -->
+      <div id="ss-goals" style="display:none">
+      <div class="card">
+        <div class="ct">Your target</div>
+        <div class="row"><div class="row-l"><div class="row-title">Profit goal</div><div class="row-sub">After costs</div></div><div class="adj"><button class="ab" onclick="adjG('g',-50)">−</button><div class="av" id="gv">$500</div><button class="ab" onclick="adjG('g',50)">+</button></div></div>
+        <div class="row"><div class="row-l"><div class="row-title">Capital</div><div class="row-sub">Starting amount</div></div><div class="adj"><button class="ab" onclick="adjG('c',-100)">−</button><div class="av" id="cv">$1,000</div><button class="ab" onclick="adjG('c',100)">+</button></div></div>
+        <div class="row"><div class="row-l"><div class="row-title">Target date</div></div><input class="date-in" type="date" id="gdt" value="2025-07-31" onchange="recalcGoal()"></div>
+      </div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Probability by strategy</div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <div class="prob-item"><div class="prob-label">Mixed strategy</div><div class="prob-tr"><div class="prob-fi" id="pf-m" style="width:82%;background:var(--pur)"></div></div><div class="prob-pct" style="color:var(--pur)" id="pp-m">82%</div></div>
+          <div class="prob-item"><div class="prob-label">Kalshi edge</div><div class="prob-tr"><div class="prob-fi" id="pf-k" style="width:72%;background:var(--grn)"></div></div><div class="prob-pct" style="color:var(--grn)" id="pp-k">72%</div></div>
+          <div class="prob-item"><div class="prob-label">Sprint focus</div><div class="prob-tr"><div class="prob-fi" id="pf-s" style="width:68%;background:var(--org)"></div></div><div class="prob-pct" style="color:var(--org)" id="pp-s">68%</div></div>
+          <div class="prob-item"><div class="prob-label">Copy trades</div><div class="prob-tr"><div class="prob-fi" id="pf-c" style="width:58%;background:var(--blu)"></div></div><div class="prob-pct" style="color:var(--blu)" id="pp-c">58%</div></div>
+        </div>
+      </div>
+      <div class="ins ins-blue" style="margin-bottom:10px"><div class="ins-t" id="g-rec">Recommended: Mixed strategy (82%)</div><div class="ins-d" id="g-desc">Combine 2–3 Kalshi edge trades/week with selective sprints on 8.5+ confidence and 1–2 copy trades from high-credibility sources.</div></div>
+      <div class="path-card">
+        <div class="path-t">Mixed path — 82% probability</div>
+        <div class="path-d">~22 winning trades at avg +$22. About 2.5/week over your timeline.</div>
+        <div class="pills"><div class="pill">Max pos: $50</div><div class="pill">7/10 conv.</div><div class="pill">Sprints: 8.5+</div></div>
+        <button class="opt-btn" id="ob-main" style="background:var(--grn);color:#fff" onclick="this.textContent='✓ Applied';this.classList.add('done')">Apply mixed strategy →</button>
+      </div>
+      <div class="card">
+        <div class="ct">Progress to goal</div>
+        <div class="ch-wrap h110"><canvas id="c-goal"></canvas></div>
+        <div style="margin-top:10px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t2);margin-bottom:4px"><span>$67.22 earned</span><span>Goal: $<span id="g-prog">500</span></span></div>
+          <div style="height:7px;background:#e5e5ea;border-radius:4px;overflow:hidden"><div id="g-prog-bar" style="height:100%;width:13.4%;background:var(--grn);border-radius:4px;transition:width .5s"></div></div>
+          <div style="font-size:11px;color:var(--t2);margin-top:5px;text-align:center">13.4% · <span id="g-days">87</span> days remaining</div>
+        </div>
+      </div>
+      </div><!-- /ss-goals -->
+      <!-- Costs sub-pane -->
+      <div id="ss-costs" style="display:none">
+      <div class="ins ins-grn" style="margin-bottom:10px"><div class="ins-t">Cost efficiency: Good ✓</div><div class="ins-d">Running costs are 1.67% of portfolio. Returns outpacing costs 3.2× this month.</div></div>
+      <div class="mg4" style="margin-bottom:10px">
+        <div class="met"><div class="met-l">This month</div><div class="met-v" style="color:var(--red)">-$20.70</div></div>
+        <div class="met"><div class="met-l">% of portfolio</div><div class="met-v">1.67%</div></div>
+        <div class="met"><div class="met-l">Per trade</div><div class="met-v">$0.74</div></div>
+        <div class="met"><div class="met-l">Returns/cost</div><div class="met-v" style="color:var(--grn)">3.2×</div></div>
+      </div>
+      <div class="card">
+        <div class="ct">Spend vs thresholds</div>
+        <div class="spend-item">
+          <div class="spend-hdr"><div class="spend-name">Claude API — agent</div><div class="spend-right"><span class="spend-val">$8.40</span><span class="badge bg" style="font-size:10px">OK</span></div></div>
+          <div class="bar-wrap"><div class="bar-fill" style="width:56%;background:var(--grn)"></div><div class="bar-thresh" style="left:80%"></div></div>
+        </div>
+        <div class="spend-item">
+          <div class="spend-hdr"><div class="spend-name">Claude API — scanner</div><div class="spend-right"><span class="spend-val">$4.20</span><span class="badge bg" style="font-size:10px">OK</span></div></div>
+          <div class="bar-wrap"><div class="bar-fill" style="width:42%;background:var(--grn)"></div><div class="bar-thresh" style="left:60%"></div></div>
+        </div>
+        <div class="spend-item">
+          <div class="spend-hdr"><div class="spend-name">Claude API — chat</div><div class="spend-right"><span class="spend-val">$2.10</span><span class="badge bo" style="font-size:10px">Near limit</span></div></div>
+          <div class="bar-wrap"><div class="bar-fill" style="width:84%;background:var(--org)"></div><div class="bar-thresh" style="left:80%"></div></div>
+          <div style="font-size:10px;color:var(--org);margin-top:3px">$0.40 until alert fires</div>
+        </div>
+        <div class="spend-item" style="margin-bottom:0">
+          <div class="spend-hdr"><div class="spend-name">VPS server</div><div class="spend-right"><span class="spend-val">$6.00</span><span class="badge bb" style="font-size:10px">Fixed</span></div></div>
+          <div class="bar-wrap"><div class="bar-fill" style="width:100%;background:#e5e5ea"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ct">Alert rules</div>
+        <div class="rule-item"><div class="rule-icon" style="background:var(--orgd)">⚠️</div><div class="rule-body"><div class="rule-name">Monthly total cap</div><div class="rule-desc">Pause scanner when hit</div></div><div class="rule-right"><button class="toggle on" onclick="this.classList.toggle('on')"></button><div class="adj" style="gap:5px"><button class="ab" style="width:24px;height:24px;font-size:13px" onclick="adjCost('r1',-5)">−</button><div class="av" id="r1" style="min-width:36px;font-size:12px">$30</div><button class="ab" style="width:24px;height:24px;font-size:13px" onclick="adjCost('r1',5)">+</button></div></div></div>
+        <div class="rule-item"><div class="rule-icon" style="background:var(--redd)">🤖</div><div class="rule-body"><div class="rule-name">Daily API spend</div><div class="rule-desc">Alert if exceeded</div></div><div class="rule-right"><button class="toggle on" onclick="this.classList.toggle('on')"></button><div class="adj" style="gap:5px"><button class="ab" style="width:24px;height:24px;font-size:13px" onclick="adjCost('r2',-.25)">−</button><div class="av" id="r2" style="min-width:40px;font-size:12px">$1.50</div><button class="ab" style="width:24px;height:24px;font-size:13px" onclick="adjCost('r2',.25)">+</button></div></div></div>
+        <div class="rule-item" style="border-bottom:none"><div class="rule-icon" style="background:var(--purd)">📉</div><div class="rule-body"><div class="rule-name">Returns/costs below</div><div class="rule-desc">Alert when costs eat into returns</div></div><div class="rule-right"><button class="toggle on" onclick="this.classList.toggle('on')"></button><div class="adj" style="gap:5px"><button class="ab" style="width:24px;height:24px;font-size:13px" onclick="adjCost('r3',-.25)">−</button><div class="av" id="r3" style="min-width:40px;font-size:12px">1.5×</div><button class="ab" style="width:24px;height:24px;font-size:13px" onclick="adjCost('r3',.25)">+</button></div></div></div>
+      </div>
+      <div class="card">
+        <div class="ct">Net vs gross performance</div>
+        <div class="leg-row"><div class="leg"><div class="leg-line" style="background:var(--grn)"></div>Gross</div><div class="leg"><div class="leg-line" style="background:var(--blu)"></div>Net</div><div class="leg"><div class="leg-line" style="background:var(--red);opacity:.6"></div>Costs</div></div>
+        <div class="ch-wrap h100"><canvas id="c-cost"></canvas></div>
+        <div class="row" style="margin-top:8px"><div class="row-title" style="color:var(--t2)">Net P&L after costs</div><div style="font-size:16px;font-weight:700;color:var(--grn);font-family:var(--mono)">+$46.52</div></div>
+      </div>
+      </div><!-- /ss-costs -->
+
+      <!-- API Key pane -->
+      <div id="ss-apikey" style="display:none">
+        <div class="card">
+          <div class="ct">Anthropic API Key</div>
+          <div style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.5">Required for the Trade Advisor chat. Stored locally in your browser only.</div>
+          <input id="apikey-inp" type="password" placeholder="sk-ant-..." style="width:100%;background:var(--bg);border:1.5px solid var(--bdr);border-radius:10px;padding:11px 12px;font-size:13px;font-family:monospace;color:var(--t);outline:none;box-sizing:border-box;margin-bottom:10px">
+          <button onclick="saveApiKey()" style="width:100%;background:var(--blu);color:#fff;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)">Save API key</button>
+          <div id="apikey-status" style="font-size:12px;text-align:center;margin-top:8px;color:var(--t3)"></div>
+        </div>
+        <div class="ins ins-blue">
+          <div class="ins-t">Where to get your key</div>
+          <div class="ins-d">Go to console.anthropic.com → API Keys → Create Key. Starts with sk-ant-. Add credits at Plans and Billing if you see an error.</div>
+        </div>
+      </div><!-- /ss-apikey -->
+    </div><!-- /p-controls settings hub -->
+
+  </div><!-- /main-content -->
+
+  <!-- ── Bottom nav ── -->
+  <div class="bottom-nav">
+    <div class="nav-item on" onclick="go('home',this)"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
+    <div class="nav-item" onclick="go('trades',this)"><div class="nav-icon">🎯</div><div class="nav-label">Trades</div><div class="nav-badge">5</div></div>
+    <div class="nav-item" onclick="go('charts',this)"><div class="nav-icon">📈</div><div class="nav-label">Charts</div></div>
+    <div class="nav-item" onclick="go('performance',this)"><div class="nav-icon">📊</div><div class="nav-label">Stats</div></div>
+    <div class="nav-item" onclick="go('controls',this)"><div class="nav-icon">🎛</div><div class="nav-label">Settings</div></div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+/* ── Utils ── */
+Chart.defaults.font.family="'DM Sans',system-ui,sans-serif";
+const q=id=>document.getElementById(id);
+const drawn={};
+function rng(s,i){let x=Math.sin(s*7.3+i*1.7)*1e4;return x-Math.floor(x)}
+function mkGrad(ctx,h,c0,c1){const g=ctx.createLinearGradient(0,0,0,h);g.addColorStop(0,c0);g.addColorStop(1,c1);return g}
+
+// Crosshair plugin — vertical line + dot on hover
+const crosshairPlugin={
+  id:'crosshair',
+  afterDraw(chart){
+    if(!chart.tooltip._active||!chart.tooltip._active.length)return;
+    const ctx=chart.ctx;
+    const x=chart.tooltip._active[0].element.x;
+    const top=chart.chartArea.top;
+    const bottom=chart.chartArea.bottom;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x,top);
+    ctx.lineTo(x,bottom);
+    ctx.lineWidth=1.5;
+    ctx.strokeStyle='rgba(0,0,0,0.15)';
+    ctx.setLineDash([4,3]);
+    ctx.stroke();
+    ctx.restore();
+  }
+};
+Chart.register(crosshairPlugin);
+const BASE={responsive:true,maintainAspectRatio:false,animation:{duration:350},interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,backgroundColor:'rgba(255,255,255,0.96)',titleColor:'#1c1c1e',bodyColor:'#3a3a3c',borderColor:'rgba(0,0,0,0.08)',borderWidth:1,padding:10,cornerRadius:8,displayColors:true,boxWidth:8,boxHeight:8}},crosshair:true};
+function AX(mn,mx,cb){return{x:{display:false},y:{display:true,position:'right',min:mn,max:mx,ticks:{color:'#aeaeb2',font:{size:10},maxTicksLimit:4,callback:cb||String},grid:{color:'rgba(0,0,0,.04)',drawBorder:false}}}}
+function AXday(mn,mx,cb){return{x:{ticks:{color:'#aeaeb2',font:{size:10}},grid:{display:false}},y:{display:true,position:'right',min:mn,max:mx,ticks:{color:'#aeaeb2',font:{size:10},maxTicksLimit:4,callback:cb||String},grid:{color:'rgba(0,0,0,.04)',drawBorder:false}}}}
+
+/* ── Navigation ── */
+const panes=['home','trades','charts','copy','positions','sprint','performance','chat','controls'];
+let curPane='home';
+function go(id,el){
+  panes.forEach(p=>{const pane=q('p-'+p);if(pane)pane.classList.toggle('on',p===id)});
+  document.querySelectorAll('.nav-item,.sb-item').forEach(n=>n.classList.remove('on'));
+  document.querySelectorAll('.nav-item,.sb-item').forEach(n=>{if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+id+"'"))n.classList.add('on');});
+  curPane=id;
+  setTimeout(()=>drawForPane(id),50);
+}
+
+function drawForPane(id){
+  if(id==='home')drawHome();
+  else if(id==='trades'){}
+  else if(id==='charts')drawCharts();
+  else if(id==='copy'){}
+  else if(id==='positions')drawPositions();
+  else if(id==='sprint')drawSprint();
+  else if(id==='performance')drawPerf('pnl');
+  else if(id==='goals'){go('controls',document.querySelector('.sb-item[onclick*=controls]'));selSettings('goals');}
+  else if(id==='costs'){go('controls',document.querySelector('.sb-item[onclick*=controls]'));selSettings('costs');}
+}
+
+/* ── Sub-tabs & chips ── */
+function selPer(el,group){q(group).querySelectorAll('.per').forEach(p=>p.classList.remove('on'));el.classList.add('on')}
+function selChip(el,group,target){
+  q(group).querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');
+  const parent=q(group).nextElementSibling||q(group).parentElement;
+  parent.querySelectorAll('.sub-tab').forEach(s=>s.classList.remove('on'));
+  const t=q(target);if(t)t.classList.add('on');
+  setTimeout(()=>{
+    if(target==='ct-btc')drawBTC();else if(target==='ct-kal')drawKal();else if(target==='ct-fed')drawFed();else if(target==='ct-edge')drawEdge();
+  },30);
+}
+function selChip2(el,group){
+  el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');
+}
+/* Performance sub-chips */
+document.querySelectorAll('#perf-chips .chip').forEach(c=>{
+  c.addEventListener('click',function(){
+    this.parentElement.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));this.classList.add('on');
+    const id=this.getAttribute('onclick').match(/'(ps-[^']+)'/)[1];
+    document.querySelectorAll('#p-performance .sub-tab').forEach(s=>s.classList.remove('on'));
+    const t=q(id);if(t)t.classList.add('on');
+    const secId=id.replace('ps-','');
+    setTimeout(()=>drawPerf(secId),30);
+  });
+});
+
+function selSettings(id){
+  ['ctrl','goals','costs','apikey'].forEach(k=>{
+    const el=document.getElementById('ss-'+k);
+    if(el)el.style.display=k===id?'block':'none';
+    const chip=document.getElementById('sc-'+k);
+    if(chip)chip.classList.toggle('on',k===id);
+  });
+  if(id==='goals')recalcGoal();
+  if(id==='costs')drawCosts();
+  if(id==='apikey'){
+    const stored=getStoredKey();
+    const inp=document.getElementById('apikey-inp');
+    if(inp&&stored)inp.value=stored;
+    const st=document.getElementById('apikey-status');
+    if(st){st.textContent=stored?'Key saved — Trade Advisor is active':'No key saved yet';st.style.color=stored?'var(--grn)':'var(--t3)';}
+  }
+}
+function saveApiKey(){
+  const inp=document.getElementById('apikey-inp');
+  const key=inp?inp.value.trim():'';
+  if(!key||!key.startsWith('sk-')){
+    const st=document.getElementById('apikey-status');
+    if(st){st.textContent='Invalid key — should start with sk-ant-';st.style.color='var(--red)';}
+    return;
+  }
+  saveKey(key);
+  const st=document.getElementById('apikey-status');
+  if(st){st.textContent='Key saved — Trade Advisor is now active';st.style.color='var(--grn)';}
+}
+function selSeg(el){el.parentElement.querySelectorAll('.seg-o').forEach(x=>x.classList.remove('on'));el.classList.add('on')}
+function toggleEl(panelId,togId){const p=q(panelId),t=q(togId);if(!p)return;const o=p.style.display==='block';p.style.display=o?'none':'block';if(t)t.textContent=o?'Show ↓':'Hide ↑';if(!o)setTimeout(()=>drawSrcMini(),30);}
+function cycleMode(){const m=q('modePill');const modes=[['mode-active','● ACTIVE'],['mode-monitor','◐ MONITOR'],['mode-paused','■ PAUSED']];const cur=modes.findIndex(x=>m.classList.contains(x[0]));const next=modes[(cur+1)%3];m.className='mode-pill '+next[0];m.textContent=next[1]}
+
+/* ── Adjust helpers ── */
+const ctrlVals={mt:50,dl:200,ap:75,mc:7};
+function adjCtrl(k,d){ctrlVals[k]=Math.max(0,ctrlVals[k]+d);const el=q(k);if(!el)return;if(k==='mc')el.textContent=ctrlVals[k]+'/10';else el.textContent='$'+ctrlVals[k];}
+const posVals={sl1:25,tp1:65,sl2:28,tp2:70};
+function adjPos(k,d){posVals[k]=Math.max(1,Math.min(99,posVals[k]+d));const el=q(k);if(el)el.textContent=posVals[k]+'¢';}
+const costVals={r1:30,r2:1.5,r3:1.5};
+function adjCost(k,d){costVals[k]=Math.max(0,Math.round((costVals[k]+d)*100)/100);const el=q(k);if(!el)return;if(k==='r3')el.textContent=costVals[k].toFixed(2)+'×';else el.textContent='$'+costVals[k].toFixed(k==='r1'?0:2);}
+const goalVals={g:500,c:1000};
+function adjG(k,d){goalVals[k]=Math.max(50,goalVals[k]+d);const fmts={g:v=>'$'+v,c:v=>'$'+v.toLocaleString()};const els={g:'gv',c:'cv'};const el=q(els[k]);if(el)el.textContent=fmts[k](goalVals[k]);recalcGoal();}
+function recalcGoal(){
+  const {g,c}=goalVals;const dt=new Date(q('gdt').value);const days=Math.max(1,Math.round((dt-new Date())/864e5));
+  const base=days/100;const f=1;
+  const probs={m:Math.min(95,Math.round((55+base*44+c/90)*f)),k:Math.min(92,Math.round((45+base*40+c/100)*f)),s:Math.min(90,Math.round((38+base*38+c/120)*f)),c_:Math.min(85,Math.round((30+base*32+c/140)*f))};
+  ['m','k','s','c_'].forEach((key,i)=>{const ids=['m','k','s','c'];const p=probs[key];const pfe=q('pf-'+ids[i]);const ppe=q('pp-'+ids[i]);if(pfe)pfe.style.width=p+'%';if(ppe)ppe.textContent=p+'%';});
+  if(q('g-prog'))q('g-prog').textContent=g;
+  if(q('g-days'))q('g-days').textContent=days;
+  const pct=Math.min(100,(67.22/g*100));
+  if(q('g-prog-bar'))q('g-prog-bar').style.width=pct.toFixed(1)+'%';
+  if(q('g-rec'))q('g-rec').textContent='Recommended: Mixed strategy ('+probs.m+'%)';
+  drawGoal();
+}
+
+/* ── Chart drawing functions ── */
+const charts={};
+function mk(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart(q(id).getContext('2d'),cfg);}
+
+function drawHome(){
+  if(drawn.home)return;drawn.home=1;
+  const el=q('c-home');if(!el)return;
+  const ctx=el.getContext('2d');const n=30;
+  const data=Array.from({length:n},(_,i)=>+(i*2.4+(rng(3,i)-.42)*4.5).toFixed(1));data[n-1]=67.22;
+  const grd=mkGrad(ctx,180,'rgba(52,199,89,.22)','rgba(0,0,0,0)');
+  mk('c-home',{type:'line',data:{labels:data.map((_,i)=>i),datasets:[{data,borderColor:'#34c759',borderWidth:2.5,backgroundColor:grd,fill:true,pointRadius:0,tension:.4}]},options:{...BASE,scales:AX(0,75,v=>'$'+v)}});
+}
+function drawBTC(){
+  if(drawn.btc)return;drawn.btc=1;const el=q('c-btc');if(!el)return;
+  const ctx=el.getContext('2d');const n=30;
+  const data=[];let v=83000;
+  for(let i=0;i<n;i++){v+=(rng(3,i)-.44)*700;data.push(Math.round(v))}data[n-1]=84100;
+  const ema=[];let e=data[0];data.forEach(d=>{e=e*.88+d*.12;ema.push(Math.round(e))});
+  const colors=data.map((d,i)=>i>0?(d>=data[i-1]?'rgba(52,199,89,.8)':'rgba(255,59,48,.75)'):'rgba(52,199,89,.8)');
+  mk('c-btc',{type:'bar',data:{labels:data.map((_,i)=>i),datasets:[{data,backgroundColor:colors,borderRadius:2,type:'bar'},{data:ema,type:'line',borderColor:'#ff9f0a',borderWidth:1.5,pointRadius:0,tension:.4,fill:false}]},options:{...BASE,scales:AX(82000,85500,v=>'$'+(v/1000).toFixed(0)+'k')}});
+}
+function drawKal(){
+  if(drawn.kal)return;drawn.kal=1;const el=q('c-kal');if(!el)return;
+  const ctx=el.getContext('2d');const n=48;
+  const data=Array.from({length:n},(_,i)=>Math.max(.3,Math.min(.72,.59+(rng(7,i)-.47)*.04+(i>36?(i-36)*-.0025:0))));
+  data[n-1]=.41;
+  const grd=mkGrad(ctx,110,'rgba(255,59,48,.12)','rgba(0,0,0,0)');
+  mk('c-kal',{type:'line',data:{labels:data.map((_,i)=>i),datasets:[{data,borderColor:'#ff3b30',borderWidth:2,backgroundColor:grd,fill:true,pointRadius:0,tension:.4},{data:Array(n).fill(.55),borderColor:'rgba(52,199,89,.6)',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false}]},options:{...BASE,scales:AX(.25,.75,v=>Math.round(v*100)+'¢')}});
+}
+function drawFed(){
+  if(drawn.fed)return;drawn.fed=1;const el=q('c-fed');if(!el)return;
+  const n=30;
+  const k=Array.from({length:n},(_,i)=>+(Math.max(.18,.30+(rng(11,i)-.42)*.05+i*.0027)).toFixed(3));k[n-1]=.38;
+  const c=Array.from({length:n},(_,i)=>+(Math.max(.28,.44+(rng(13,i)-.40)*.05+i*.0033)).toFixed(3));c[n-1]=.54;
+  const est=Array(n).fill(null);est[n-1]=.52;
+  mk('c-fed',{type:'line',data:{labels:Array.from({length:n},(_,i)=>i),datasets:[{data:k,borderColor:'#007aff',borderWidth:2,pointRadius:0,tension:.4,fill:false},{data:c,borderColor:'#ff9f0a',borderWidth:2,pointRadius:0,tension:.4,fill:false},{data:est,borderColor:'rgba(52,199,89,.9)',borderDash:[6,4],borderWidth:1.5,pointRadius:[...Array(n-1).fill(0),5],pointBackgroundColor:'#34c759',fill:false}]},options:{...BASE,scales:AX(.15,.65,v=>Math.round(v*100)+'¢')}});
+}
+function drawEdge(){
+  if(drawn.edge)return;drawn.edge=1;const el=q('c-edge');if(!el)return;
+  mk('c-edge',{type:'bar',data:{labels:['Lakers','Fed Cut','BTC $95k','Approval','Dow 43k'],datasets:[{data:[14,14,8,8,3],backgroundColor:['#34c759','#34c759','#ff9f0a','#ff9f0a','#aeaeb2'],borderRadius:5,barPercentage:.65},{data:[5,5,5,5,5],type:'line',borderColor:'rgba(0,0,0,.18)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false}]},options:{...BASE,scales:{x:{ticks:{color:'#aeaeb2',font:{size:9}},grid:{display:false}},y:{display:true,position:'right',min:0,max:18,ticks:{color:'#aeaeb2',font:{size:10},maxTicksLimit:4,callback:v=>v+'pp'},grid:{color:'rgba(0,0,0,.04)',drawBorder:false}}}}});
+}
+function drawCharts(){drawBTC();}
+function drawPositions(){
+  ['p1','p2','p3'].forEach((id,i)=>{
+    if(drawn['pos'+i])return;drawn['pos'+i]=1;
+    const el=q('c-'+id);if(!el)return;
+    const ctx=el.getContext('2d');const n=20;
+    const data=Array.from({length:n},(_,j)=>+(j*1.2+(rng(i*7+3,j)-.44)*2).toFixed(2));
+    const grd=mkGrad(ctx,80,'rgba(52,199,89,.18)','rgba(0,0,0,0)');
+    mk('c-'+id,{type:'line',data:{labels:data.map((_,j)=>j),datasets:[{data,borderColor:'#34c759',borderWidth:1.8,backgroundColor:grd,fill:true,pointRadius:0,tension:.4}]},options:{...BASE,scales:AX(0,data[n-1]*1.2,v=>'$'+v)}});
+  });
+}
+function drawSprint(){
+  if(drawn.sprint)return;drawn.sprint=1;const el=q('c-sprint');if(!el)return;
+  const ctx=el.getContext('2d');const data=[0,1.2,3.4,2.8,5.1,4.6,7.2,8.9,10.4,9.8,12.1,14.3,13.7,16.2,18.4];
+  const grd=mkGrad(ctx,80,'rgba(0,214,143,.25)','rgba(0,0,0,0)');
+  mk('c-sprint',{type:'line',data:{labels:data.map((_,i)=>i),datasets:[{data,borderColor:'#00d68f',borderWidth:2,backgroundColor:grd,fill:true,pointRadius:0,tension:.4}]},options:{...BASE,scales:{x:{display:false},y:{display:false}}}});
+}
+function drawPerf(sec){
+  if(sec==='pnl'){
+    if(!drawn.pnl){drawn.pnl=1;const el=q('c-pnl');if(el){const ctx=el.getContext('2d');const n=28;const data=Array.from({length:n},(_,i)=>+(i*2.6+(rng(3,i)-.42)*4.5).toFixed(1));data[n-1]=67.22;const grd=mkGrad(ctx,110,'rgba(52,199,89,.2)','rgba(0,0,0,0)');mk('c-pnl',{type:'line',data:{labels:data.map((_,i)=>i),datasets:[{data,borderColor:'#34c759',borderWidth:2.5,backgroundColor:grd,fill:true,pointRadius:0,tension:.4}]},options:{...BASE,scales:AX(0,75,v=>'$'+v)}});}}
+    if(!drawn.wl){drawn.wl=1;const el=q('c-wl');if(el)mk('c-wl',{type:'bar',data:{labels:['W1','W2','W3','W4','W5'],datasets:[{data:[4,5,3,5,3],backgroundColor:'rgba(52,199,89,.75)',borderRadius:4},{data:[-2,-1,-3,-1,-1],backgroundColor:'rgba(255,59,48,.65)',borderRadius:4}]},options:{...BASE,scales:{x:{ticks:{color:'#aeaeb2',font:{size:10}},grid:{display:false}},y:{display:true,position:'right',ticks:{color:'#aeaeb2',font:{size:10},maxTicksLimit:4,callback:v=>v>0?'+'+v:v},grid:{color:'rgba(0,0,0,.04)',drawBorder:false}}}}});}
+    if(!drawn.dist){drawn.dist=1;const el=q('c-dist');if(el)mk('c-dist',{type:'bar',data:{labels:['-$20','-$10','$0','$5','$10','$20','$30'],datasets:[{data:[1,4,3,7,8,4,1],borderRadius:3,backgroundColor:[...Array(2).fill('rgba(255,59,48,.65)'),...Array(5).fill('rgba(52,199,89,.7)')]}]},options:{...BASE,scales:{x:{ticks:{color:'#aeaeb2',font:{size:8}},grid:{display:false}},y:{display:false}}}});}
+  } else if(sec==='risk'){
+    if(!drawn.dd){drawn.dd=1;const el=q('c-dd');if(el){const n=28;const eq=Array.from({length:n},(_,i)=>+(i*2.6+(rng(3,i)-.42)*4.5).toFixed(1));eq[n-1]=67.22;let pk=eq[0];const dd=eq.map(v=>{pk=Math.max(pk,v);return +(Math.min(0,v-pk)).toFixed(1)});const ctx=el.getContext('2d');const g1=mkGrad(ctx,120,'rgba(52,199,89,.18)','rgba(0,0,0,0)'),g2=mkGrad(ctx,120,'rgba(255,59,48,.22)','rgba(0,0,0,0)');mk('c-dd',{type:'line',data:{labels:eq.map((_,i)=>i),datasets:[{data:eq,borderColor:'#34c759',borderWidth:2,pointRadius:0,tension:.4,fill:true,backgroundColor:g1,yAxisID:'y'},{data:dd,borderColor:'#ff3b30',borderWidth:1.5,pointRadius:0,tension:.4,fill:true,backgroundColor:g2,yAxisID:'y2'}]},options:{...BASE,scales:{x:{display:false},y:{display:true,position:'right',ticks:{color:'#aeaeb2',font:{size:10},maxTicksLimit:4,callback:v=>'$'+v},grid:{color:'rgba(0,0,0,.04)',drawBorder:false}},y2:{display:false,min:-25,max:75}}}});}}
+    if(!drawn.sh){drawn.sh=1;const el=q('c-sharpe');if(el){const n=20;const data=Array.from({length:n},(_,i)=>+(0.4+i*.08+(rng(13,i)-.45)*.3).toFixed(2));data[n-1]=1.84;const ctx=el.getContext('2d');const grd=mkGrad(ctx,90,'rgba(175,82,222,.18)','rgba(0,0,0,0)');mk('c-sharpe',{type:'line',data:{labels:data.map((_,i)=>i),datasets:[{data,borderColor:'#af52de',borderWidth:2,backgroundColor:grd,fill:true,pointRadius:0,tension:.4},{data:Array(n).fill(1),borderColor:'rgba(0,0,0,.15)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false},{data:Array(n).fill(1.5),borderColor:'rgba(52,199,89,.35)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false}]},options:{...BASE,scales:AX(0,2.5,v=>v.toFixed(1))}});}}
+  } else if(sec==='patterns'){
+    if(!drawn.days){drawn.days=1;const el=q('c-days');if(el){const vals=[-4.2,14.8,5.1,12.3,18.6,-2.1,3.0];mk('c-days',{type:'bar',data:{labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],datasets:[{data:vals,borderRadius:5,barPercentage:.7,backgroundColor:vals.map(v=>v>0?'rgba(52,199,89,.75)':'rgba(255,59,48,.65)')}]},options:{...BASE,scales:AXday(null,null,v=>'$'+v)}});}}
+    if(!drawn.scat){drawn.scat=1;const el=q('c-scat');if(el){const pts=Array.from({length:24},(_,i)=>({x:+(6+rng(19,i)*4).toFixed(1),y:+(rng(21,i)*36-10+(rng(19,i)*4)*1.8).toFixed(2)}));mk('c-scat',{type:'scatter',data:{datasets:[{data:pts,backgroundColor:pts.map(p=>p.y>0?'rgba(52,199,89,.65)':'rgba(255,59,48,.6)'),pointRadius:5}]},options:{...BASE,scales:{x:{ticks:{color:'#aeaeb2',font:{size:10}},title:{display:true,text:'Confidence',color:'#aeaeb2',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},y:{display:true,position:'right',ticks:{color:'#aeaeb2',font:{size:10},maxTicksLimit:4,callback:v=>'$'+v},grid:{color:'rgba(0,0,0,.04)',drawBorder:false}}}}});}}
+  } else if(sec==='sources'){
+    if(!drawn.srcb){drawn.srcb=1;const el=q('c-srcbar');if(el){const vals=[87,75,71,67,52,44];mk('c-srcbar',{type:'bar',data:{labels:['sharpbets','PredictTr','Whale7f3a','Agent','sportsbook','Discord'],datasets:[{data:vals,borderRadius:5,barPercentage:.65,backgroundColor:vals.map(v=>v>65?'rgba(52,199,89,.75)':v>55?'rgba(255,159,10,.75)':'rgba(255,59,48,.65)')}]},options:{...BASE,scales:{x:{ticks:{color:'#aeaeb2',font:{size:9}},grid:{display:false}},y:{display:true,position:'right',min:0,max:100,ticks:{color:'#aeaeb2',font:{size:10},maxTicksLimit:4,callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.04)',drawBorder:false}}}}});}}
+  }
+}
+function drawSrcMini(){
+  if(drawn.srcmini)return;drawn.srcmini=1;const el=q('c-src-mini');if(!el)return;
+  const vals=[87,75,44];mk('c-src-mini',{type:'bar',data:{labels:['sharpbets','PredictTr','Discord'],datasets:[{data:vals,borderRadius:5,backgroundColor:vals.map(v=>v>65?'rgba(52,199,89,.75)':'rgba(255,59,48,.65)'),barPercentage:.6}]},options:{...BASE,scales:{x:{ticks:{color:'#aeaeb2',font:{size:9}},grid:{display:false}},y:{display:true,position:'right',min:0,max:100,ticks:{color:'#aeaeb2',font:{size:10},maxTicksLimit:3,callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.04)',drawBorder:false}}}}});
+}
+function drawGoal(){
+  const el=q('c-goal');if(!el)return;
+  const ctx=el.getContext('2d');const n=28,goal=goalVals.g;
+  const actual=[0,2,5,4,8,12,11,15,18,16,22,28,25,31,36,33,40,45,43,48,52,50,55,60,58,63,67,67];
+  const path=Array.from({length:n},(_,i)=>+(i*(goal*0.85/(n-1))+(rng(5,i)-.5)*9).toFixed(1));
+  const grd=mkGrad(ctx,110,'rgba(52,199,89,.2)','rgba(0,0,0,0)');
+  mk('c-goal',{type:'line',data:{labels:Array.from({length:n},(_,i)=>i),datasets:[{data:actual.slice(0,n),borderColor:'#34c759',borderWidth:2.5,backgroundColor:grd,fill:true,pointRadius:0,tension:.4},{data:path,borderColor:'rgba(175,82,222,.55)',borderWidth:1.5,borderDash:[5,4],pointRadius:0,tension:.4,fill:false},{data:Array(n).fill(goal),borderColor:'rgba(0,0,0,.12)',borderWidth:1,borderDash:[3,3],pointRadius:0,fill:false}]},options:{...BASE,scales:AX(0,goal+goal*.08,v=>'$'+v)}});
+}
+function drawCosts(){
+  if(drawn.costs)return;drawn.costs=1;const el=q('c-cost');if(!el)return;
+  const n=28;const gross=Array.from({length:n},(_,i)=>+(i*2.4+(rng(9,i)-.4)*4).toFixed(1));gross[n-1]=67.22;
+  const costs=Array.from({length:n},(_,i)=>+(i*.72+(rng(11,i)-.5)*.8).toFixed(2));
+  const net=gross.map((g,i)=>+(g-costs[i]).toFixed(2));
+  mk('c-cost',{type:'line',data:{labels:Array.from({length:n},(_,i)=>i),datasets:[{data:gross,borderColor:'#34c759',borderWidth:2,pointRadius:0,tension:.4,fill:false},{data:net,borderColor:'#007aff',borderWidth:2,pointRadius:0,tension:.4,fill:false},{data:costs.map(c=>-c),borderColor:'#ff3b30',borderWidth:1.5,borderDash:[4,3],pointRadius:0,tension:.3,fill:false}]},options:{...BASE,scales:AX(-25,80,v=>'$'+v)}});
+}
+
+/* ── Chat ── */
+/* ── Chat ── */
+const ADVISOR_PROMPT=`You are the Trade Advisor in the TradeAgent dashboard. You help the trader think through positions, size trades, and manage risk. You have full context on the portfolio injected in each message.
+
+Be sharp and opinionated. Give concrete recommendations. State the key risk in one sentence. End with a confidence statement like "I'm ~75% on this."
+
+Never say "as an AI". No disclaimers. No "Great question". Be direct.
+
+After your response optionally add: SUGGESTED_FOLLOW_UPS: ["q1","q2"]`;
+
+let chatHistory=[];
+let anthropicKey='';
+
+function getStoredKey(){try{return localStorage.getItem('ta_api_key')||'';}catch(e){return '';}}
+function saveKey(k){try{localStorage.setItem('ta_api_key',k);}catch(e){}anthropicKey=k;}
+
+function getPortfolioCtx(){
+  return {
+    pv:document.getElementById('heroVal')?.textContent||'$1,240.32',
+    pnl:document.getElementById('heroAmt')?.textContent||'+$12.40',
+    mode:document.getElementById('modePill')?.textContent?.trim()||'MONITOR',
+    mt:document.getElementById('mt')?.textContent||'$50',
+    ap:document.getElementById('ap')?.textContent||'$75',
+  };
+}
+
+function buildCtx(question){
+  const s=getPortfolioCtx();
+  return '[PORTFOLIO] Value:'+s.pv+' P&L:'+s.pnl+' Mode:'+s.mode+'\nMax trade:'+s.mt+' Approval:'+s.ap+'\n[POSITIONS] Lakers NO ($40,Kalshi,+$8.21), Fed Cut May YES ($35,Kalshi,+$3.41), BTC-USD ($50,Coinbase,+$5.41)\n[QUESTION] '+question;
+}
+
+function addMsg(txt,isU){const a=document.getElementById('msgs');const w=document.createElement('div');w.className='mw '+(isU?'u':'b');if(!isU){const n=document.createElement('div');n.className='mn';n.textContent='Trade Advisor';w.appendChild(n);}const b=document.createElement('div');b.className='bub '+(isU?'u':'b');b.innerHTML=txt;w.appendChild(b);a.appendChild(w);a.scrollTop=9999;return b;}
+
+function showTyping(){const a=document.getElementById('msgs');const tw=document.createElement('div');tw.className='mw b';tw.id='typInd';const tb=document.createElement('div');tb.className='typing';tb.innerHTML='<div class="dot"></div><div class="dot"></div><div class="dot"></div>';tw.appendChild(tb);a.appendChild(tw);a.scrollTop=9999;}
+
+function addBotMsg(text,suggestions){
+  document.getElementById('typInd')?.remove();
+  const a=document.getElementById('msgs');
+  const w=document.createElement('div');w.className='mw b';
+  const n=document.createElement('div');n.className='mn';n.textContent='Trade Advisor';w.appendChild(n);
+  const b=document.createElement('div');b.className='bub b';
+  b.innerHTML=text.replace(/\n/g,'<br>');
+  if(suggestions&&suggestions.length){
+    const qrs=document.createElement('div');qrs.className='qrs';
+    suggestions.forEach(function(s){const btn=document.createElement('div');btn.className='qr';btn.textContent=s;btn.onclick=function(){sendQ(btn);};qrs.appendChild(btn);});
+    b.appendChild(qrs);
+  }
+  w.appendChild(b);a.appendChild(w);a.scrollTop=9999;
+}
+
+async function callAdvisor(question){
+  const key=anthropicKey||getStoredKey();
+  if(!key){addBotMsg('No API key set. Go to Settings → API Key and paste your Anthropic key.',null);return;}
+  const ctx=buildCtx(question);
+  chatHistory.push({role:'user',content:ctx});
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:800,system:ADVISOR_PROMPT,messages:chatHistory})
+    });
+    const data=await res.json();
+    if(data.error){chatHistory.pop();addBotMsg('API error: '+(data.error.message||'Check your key in Settings.'),null);return;}
+    const full=data.content[0].text.trim();
+    chatHistory.push({role:'assistant',content:full});
+    const lines=full.split('\n');
+    const last=lines[lines.length-1];
+    let sugg=null,txt=full;
+    if(last.startsWith('SUGGESTED_FOLLOW_UPS:')){
+      try{sugg=JSON.parse(last.replace('SUGGESTED_FOLLOW_UPS:','').trim());txt=lines.slice(0,-1).join('\n').trim();}catch(e){}
+    }
+    addBotMsg(txt,sugg);
+    if(chatHistory.length>6)chatHistory=chatHistory.slice(-6);
+  }catch(err){chatHistory.pop();addBotMsg('Could not reach the API. Check your connection.',null);}
+}
+
+function sendChat(){const inp=document.getElementById('chatInp');const t=inp.value.trim();if(!t)return;inp.value='';addMsg(t,true);showTyping();callAdvisor(t);}
+function sendQ(el){addMsg(el.textContent,true);showTyping();callAdvisor(el.textContent);}
+function trAct(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const btn=el.querySelector('button');
+  if(btn){btn.textContent='✓ Queued';btn.style.opacity='.65';}
+  setTimeout(()=>trDismiss(id),1200);
+}
+function trDismiss(id){
+  const el=document.getElementById(id);if(!el)return;
+  el.style.transition='all .25s';el.style.opacity='0';el.style.transform='translateX(20px)';
+  el.style.maxHeight=el.offsetHeight+'px';
+  setTimeout(()=>{el.style.maxHeight='0';el.style.padding='0';el.style.margin='0';el.style.overflow='hidden';},250);
+}
+function trFilter(cat,btn){
+  document.querySelectorAll('#p-trades .per').forEach(c=>c.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('#tr-feed [id^=tr]').forEach(card=>{
+    const cats=(card.getAttribute('data-tc')||'').split(',');
+    card.style.display=(cat==='all'||cats.includes(cat))?'block':'none';
+  });
+}
+function trDetail(id){
+  const d=document.getElementById('dt'+id);
+  const btn=document.getElementById(id)?.querySelectorAll('button')[1];
+  if(!d)return;
+  const o=d.style.display==='block';
+  d.style.display=o?'none':'block';
+  if(btn)btn.textContent=o?'Details ↓':'Details ↑';
+}
+
+/* ── Init ── */
+recalcGoal();
+setTimeout(()=>drawHome(),100);
+anthropicKey=getStoredKey();
+</script>
+</body>
+</html>
