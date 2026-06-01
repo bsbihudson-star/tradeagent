@@ -840,6 +840,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--t);font-size:15px;
         <div class="chip on" id="sc-ctrl" onclick="selSettings('ctrl')">Controls</div>
         <div class="chip" id="sc-goals" onclick="selSettings('goals')">Goals</div>
         <div class="chip" id="sc-costs" onclick="selSettings('costs')">Costs</div>
+        <div class="chip" id="sc-sources" onclick="selSettings('sources')">Sources</div>
+        <div class="chip" id="sc-apikey" onclick="selSettings('apikey')">API Key</div>
       </div>
       <!-- Controls sub-pane -->
       <div id="ss-ctrl">
@@ -954,6 +956,71 @@ body{font-family:var(--sans);background:var(--bg);color:var(--t);font-size:15px;
         <div class="row" style="margin-top:8px"><div class="row-title" style="color:var(--t2)">Net P&L after costs</div><div style="font-size:16px;font-weight:700;color:var(--grn);font-family:var(--mono)">+$46.52</div></div>
       </div>
       </div><!-- /ss-costs -->
+
+      <!-- Sources pane -->
+      <div id="ss-sources" style="display:none">
+        <div class="card">
+          <div class="ct">Add source</div>
+          <div style="display:flex;gap:7px;margin-bottom:10px">
+            <input id="src-inp" placeholder="@handle, subreddit, or URL" style="flex:1;background:var(--bg);border:1.5px solid transparent;border-radius:10px;padding:9px 12px;font-size:13px;font-family:var(--sans);color:var(--t);outline:none;min-width:0" onfocus="this.style.borderColor='var(--blu)'" onblur="this.style.borderColor='transparent'">
+            <select id="src-tier" style="background:var(--bg);border:none;border-radius:10px;padding:9px 10px;font-size:12px;font-weight:600;font-family:var(--sans);color:var(--t2);outline:none;cursor:pointer;flex-shrink:0">
+              <option value="1">T1 · Market</option>
+              <option value="2" selected>T2 · Sharp</option>
+              <option value="3">T3 · Expert</option>
+              <option value="4">T4 · Alt data</option>
+              <option value="5">T5 · Narrative</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:7px">
+            <select id="src-type" style="flex:1;background:var(--bg);border:none;border-radius:10px;padding:9px 10px;font-size:12px;font-weight:600;font-family:var(--sans);color:var(--t2);outline:none;cursor:pointer">
+              <option value="twitter">X / Twitter</option>
+              <option value="reddit">Reddit</option>
+              <option value="discord">Discord</option>
+              <option value="substack">Substack</option>
+              <option value="onchain">On-chain</option>
+              <option value="other">Other</option>
+            </select>
+            <button onclick="addSource()" style="flex:1;background:var(--blu);color:#fff;border:none;border-radius:10px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)">Add source</button>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div class="ct" style="margin-bottom:0">Active sources</div>
+            <div style="font-size:11px;color:var(--t2)" id="src-count">9 active</div>
+          </div>
+          <div id="src-list"></div>
+        </div>
+        <div class="card" id="src-muted-card" style="display:none">
+          <div class="ct">Muted</div>
+          <div id="src-muted-list"></div>
+        </div>
+        <div class="ins ins-blue">
+          <div class="ins-t">How sources work</div>
+          <div class="ins-d">Active sources are injected into the agent every cycle. Higher tiers get more weight. Mute to exclude without deleting. Win rate updates as trades resolve.</div>
+        </div>
+        <div class="card" id="src-suggestions-card" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div class="ct" style="margin-bottom:0">🤖 Agent suggestions</div>
+            <span id="src-sug-count" style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--blud);color:var(--blut)">0 new</span>
+          </div>
+          <div id="src-suggestions-list"></div>
+        </div>
+      </div><!-- /ss-sources -->
+
+      <!-- API Key pane -->
+      <div id="ss-apikey" style="display:none">
+        <div class="card">
+          <div class="ct">Anthropic API Key</div>
+          <div style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.5">Required for the Trade Advisor chat. Stored locally in your browser only.</div>
+          <input id="apikey-inp" type="password" placeholder="sk-ant-..." style="width:100%;background:var(--bg);border:1.5px solid var(--bdr);border-radius:10px;padding:11px 12px;font-size:13px;font-family:monospace;color:var(--t);outline:none;box-sizing:border-box;margin-bottom:10px">
+          <button onclick="saveApiKey()" style="width:100%;background:var(--blu);color:#fff;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)">Save API key</button>
+          <div id="apikey-status" style="font-size:12px;text-align:center;margin-top:8px;color:var(--t3)"></div>
+        </div>
+        <div class="ins ins-blue">
+          <div class="ins-t">Where to get your key</div>
+          <div class="ins-d">Go to console.anthropic.com → API Keys → Create Key. Starts with sk-ant-. Add credits at Plans and Billing if the chat returns an error.</div>
+        </div>
+      </div><!-- /ss-apikey -->
     </div><!-- /p-controls settings hub -->
 
   </div><!-- /main-content -->
@@ -1033,15 +1100,123 @@ document.querySelectorAll('#perf-chips .chip').forEach(c=>{
   });
 });
 
+
+/* ── Sources ── */
+const TIER_LABELS={1:'T1 · Market',2:'T2 · Sharp',3:'T3 · Expert',4:'T4 · Alt data',5:'T5 · Narrative'};
+const TIER_COLORS={1:'var(--grn)',2:'var(--blu)',3:'var(--pur)',4:'var(--org)',5:'var(--t3)'};
+const TYPE_ICONS={twitter:'𝕏',reddit:'📋',discord:'💬',substack:'📝',onchain:'🔗',other:'📡'};
+let sources=[
+  {id:1,handle:'@PredictTrader',type:'twitter',tier:2,active:true,winRate:75,trades:8},
+  {id:2,handle:'u/sharpbets_22',type:'reddit',tier:2,active:true,winRate:87,trades:23},
+  {id:3,handle:'@nolimitgains',type:'twitter',tier:2,active:true,winRate:null,trades:0},
+  {id:4,handle:'@unusual_whales',type:'twitter',tier:1,active:true,winRate:null,trades:0},
+  {id:5,handle:'@lookonchain',type:'onchain',tier:4,active:true,winRate:null,trades:0},
+  {id:6,handle:'@tier10k',type:'twitter',tier:2,active:true,winRate:null,trades:0},
+  {id:7,handle:'r/sportsbook',type:'reddit',tier:2,active:true,winRate:null,trades:0},
+  {id:8,handle:'Lyn Alden (Substack)',type:'substack',tier:3,active:true,winRate:null,trades:0},
+  {id:9,handle:'Frontrunner Discord',type:'discord',tier:3,active:true,winRate:null,trades:0},
+];
+let nextSrcId=10;
+let sourceSuggestions=[{id:'sug1',handle:'@KalshiWhales',platform:'twitter',suggested_tier:2,reason:'Correctly identified whale accumulation on 3 Kalshi markets before price moved.',sample_signal:'Whale alert: $8,400 BUY on Fed Cut YES at 36¢ — 2hrs before CME gap became widely discussed.',edge_type:'EARLY'}];
+
+function renderSources(){
+  const active=sources.filter(s=>s.active);
+  const muted=sources.filter(s=>!s.active);
+  const sc=document.getElementById('src-count');if(sc)sc.textContent=active.length+' active';
+  const sl=document.getElementById('src-list');if(sl)sl.innerHTML=active.map(s=>srcRow(s,false)).join('');
+  const mc=document.getElementById('src-muted-card');
+  if(mc){
+    mc.style.display=muted.length?'block':'none';
+    const sml=document.getElementById('src-muted-list');if(sml)sml.innerHTML=muted.map(s=>srcRow(s,true)).join('');
+  }
+  renderSuggestions();
+}
+function srcRow(s,isMuted){
+  const wr=s.winRate!=null?`<span style="font-size:11px;font-weight:700;font-family:var(--mono);color:${s.winRate>=70?'var(--grn)':s.winRate>=50?'var(--org)':'var(--red)'}">${s.winRate}%</span>`:`<span style="font-size:11px;color:var(--t3)">No data</span>`;
+  const tb=`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--bg);color:${TIER_COLORS[s.tier]};border:1px solid ${TIER_COLORS[s.tier]}">${TIER_LABELS[s.tier]}</span>`;
+  const icon=TYPE_ICONS[s.type]||'📡';
+  return `<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:.5px solid var(--bg);cursor:pointer" onclick="openSourceDrawer(${s.id})">
+    <div style="font-size:14px;flex-shrink:0">${icon}</div>
+    <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.handle}</div>
+    <div style="display:flex;align-items:center;gap:6px;margin-top:3px">${tb}${s.trades>0?`<span style="font-size:10px;color:var(--t3)">${s.trades} trades</span>`:''}${wr}</div></div>
+    <div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">
+      ${!isMuted?`<button onclick="muteSource(${s.id})" style="padding:5px 10px;border-radius:8px;border:none;background:var(--bg);color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--sans)">Mute</button>`:`<button onclick="unmuteSource(${s.id})" style="padding:5px 10px;border-radius:8px;border:none;background:var(--blud);color:var(--blu);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--sans)">Unmute</button>`}
+      <button onclick="removeSource(${s.id})" style="padding:5px 8px;border-radius:8px;border:none;background:var(--redd);color:var(--redt);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--sans)">✕</button>
+    </div></div>`;
+}
+function addSource(){
+  const inp=document.getElementById('src-inp');const handle=inp.value.trim();if(!handle)return;
+  const tier=parseInt(document.getElementById('src-tier').value);
+  const type=document.getElementById('src-type').value;
+  sources.push({id:nextSrcId++,handle,type,tier,active:true,winRate:null,trades:0});
+  inp.value='';renderSources();
+  inp.style.borderColor='var(--grn)';setTimeout(()=>{inp.style.borderColor='transparent';},800);
+}
+function muteSource(id){const s=sources.find(x=>x.id===id);if(s){s.active=false;renderSources();}}
+function unmuteSource(id){const s=sources.find(x=>x.id===id);if(s){s.active=true;renderSources();}}
+function removeSource(id){sources=sources.filter(x=>x.id!==id);renderSources();}
+function renderSuggestions(){
+  const card=document.getElementById('src-suggestions-card');
+  const list=document.getElementById('src-suggestions-list');
+  const ct=document.getElementById('src-sug-count');
+  if(!card||!list)return;
+  if(!sourceSuggestions.length){card.style.display='none';return;}
+  card.style.display='block';
+  if(ct)ct.textContent=sourceSuggestions.length+' new';
+  list.innerHTML=sourceSuggestions.map(s=>`<div style="padding:10px 0;border-bottom:.5px solid var(--bg)">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">
+      <div style="font-size:13px;font-weight:700">${TYPE_ICONS[s.platform]||'📡'} ${s.handle}</div>
+      <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--blud);color:var(--blut);flex-shrink:0">${s.edge_type}</span>
+    </div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:5px">${s.reason}</div>
+    <div style="font-size:11px;font-style:italic;color:var(--t3);background:var(--bg);border-radius:8px;padding:7px 9px;margin-bottom:8px">"${s.sample_signal}"</div>
+    <div style="display:flex;gap:7px">
+      <button onclick="approveSuggestion('${s.id}')" style="flex:2;background:var(--grn);color:#fff;border:none;border-radius:9px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans)">Add to sources</button>
+      <button onclick="dismissSuggestion('${s.id}')" style="flex:1;background:var(--bg);color:var(--t2);border:none;border-radius:9px;padding:8px;font-size:12px;cursor:pointer;font-family:var(--sans)">Dismiss</button>
+    </div></div>`).join('');
+}
+function approveSuggestion(sugId){
+  const s=sourceSuggestions.find(x=>x.id===sugId);if(!s)return;
+  sources.push({id:nextSrcId++,handle:s.handle,type:s.platform,tier:s.suggested_tier,active:true,winRate:null,trades:0});
+  sourceSuggestions=sourceSuggestions.filter(x=>x.id!==sugId);
+  renderSources();
+}
+function dismissSuggestion(sugId){sourceSuggestions=sourceSuggestions.filter(x=>x.id!==sugId);renderSuggestions();}
+function openSourceDrawer(id){
+  // Simple drawer - show source info
+  const s=sources.find(x=>x.id===id);if(!s)return;
+  alert(s.handle+' ('+TIER_LABELS[s.tier]+')'+(s.winRate?'\nWin rate: '+s.winRate+'%\nTrades: '+s.trades:'\nNo trade history yet'));
+}
+
 function selSettings(id){
-  ['ctrl','goals','costs'].forEach(k=>{
-    const el=q('ss-'+k);
+  ['ctrl','goals','costs','sources','apikey'].forEach(k=>{
+    const el=document.getElementById('ss-'+k);
     if(el)el.style.display=k===id?'block':'none';
-    const chip=q('sc-'+k);
+    const chip=document.getElementById('sc-'+k);
     if(chip)chip.classList.toggle('on',k===id);
   });
   if(id==='goals')recalcGoal();
   if(id==='costs')drawCosts();
+  if(id==='sources')renderSources();
+  if(id==='apikey'){
+    const stored=getStoredKey();
+    const inp=document.getElementById('apikey-inp');
+    if(inp&&stored)inp.value=stored;
+    const st=document.getElementById('apikey-status');
+    if(st){st.textContent=stored?'✅ Key saved — Trade Advisor is active':'No key saved yet';st.style.color=stored?'var(--grn)':'var(--t3)';}
+  }
+}
+function saveApiKey(){
+  const inp=document.getElementById('apikey-inp');
+  const key=inp?inp.value.trim():'';
+  if(!key||!key.startsWith('sk-')){
+    const st=document.getElementById('apikey-status');
+    if(st){st.textContent='⚠️ Invalid key — should start with sk-ant-';st.style.color='var(--red)';}
+    return;
+  }
+  saveKey(key);
+  const st=document.getElementById('apikey-status');
+  if(st){st.textContent='✅ Key saved — Trade Advisor is now active';st.style.color='var(--grn)';}
 }
 function selSeg(el){el.parentElement.querySelectorAll('.seg-o').forEach(x=>x.classList.remove('on'));el.classList.add('on')}
 function toggleEl(panelId,togId){const p=q(panelId),t=q(togId);if(!p)return;const o=p.style.display==='block';p.style.display=o?'none':'block';if(t)t.textContent=o?'Show ↓':'Hide ↑';if(!o)setTimeout(()=>drawSrcMini(),30);}
